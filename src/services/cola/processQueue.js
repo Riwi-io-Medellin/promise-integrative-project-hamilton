@@ -174,7 +174,7 @@ async function processQueueItem(item) {
     {
       event:         'processing_candidate',
       candidato_id:  candidato.id,
-      nombres:       `${candidato.nombre} ${candidato.apellido}`,
+      nombre:       `${candidato.nombre} ${candidato.apellido}`,
       ciudad:        candidato.ciudad,
       fase_actual:   candidato.fase_actual,
       motivo,

@@ -2,7 +2,7 @@
  * src/services/llamadas/callService.js
  *
  * Dynamic variables sent to ElevenLabs agent:
- *   id, nombres, motivo, ciudad, lista_horarios,
+ *   id, nombre, motivo, ciudad, lista_horarios,
  *   eventos_disponibles, intentos, nota_previa
  */
 'use strict';
@@ -26,7 +26,7 @@ const ELEVENLABS_PHONE_NUM_ID = process.env.ELEVENLABS_PHONE_NUMBER_ID
  *
  * Variables required by the agent:
  *   id                 – candidato UUID
- *   nombres            – nombre completo
+ *   nombre            – nombre completo
  *   motivo             – motivo/fase de la llamada
  *   ciudad             – municipio del candidato
  *   lista_horarios     – opciones de fecha en texto legible
@@ -49,7 +49,7 @@ function buildElevenLabsBody(candidato, motivo, eventos) {
     conversation_initiation_client_data: {
       dynamic_variables: {
         id:                  String(candidato.id),
-        nombres:             `${candidato.nombre} ${candidato.apellido}`,
+        nombre:             `${candidato.nombre} ${candidato.apellido}`,
         motivo:              motivo,
         ciudad:              candidato.ciudad || 'Colombia',
         lista_horarios:      fechasTexto      || 'No hay horarios disponibles por el momento',
@@ -76,7 +76,7 @@ async function makeOutboundCall(candidato, motivo, eventos) {
     {
       event:        'elevenlabs_call_attempt',
       candidato_id: candidato.id,
-      nombres:      `${candidato.nombre} ${candidato.apellido}`,
+      nombre:      `${candidato.nombre} ${candidato.apellido}`,
       telefono:     candidato.telefono,
       ciudad:       candidato.ciudad,
       intentos:     candidato.intentos_llamada,
