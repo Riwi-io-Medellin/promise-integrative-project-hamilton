@@ -1,20 +1,16 @@
 {
   "name": "sofia",
   "version": "2.0.0",
-  "description": "SofIA – Outbound call automation service (replaces n8n flows)",
+  "description": "SofIA – Outbound call automation service",
   "main": "index.js",
   "scripts": {
-    "start":          "node index.js",
-    "dev":            "node --watch index.js",
-    "test:db":        "node scripts/1-test-db.js",
-    "test:fill":      "node scripts/2-test-fill-queue.js",
-    "test:worker":    "node scripts/3-test-worker.js",
-    "test:webhook":   "node scripts/4-test-webhook.js",
-    "test:all":       "node scripts/1-test-db.js && node scripts/2-test-fill-queue.js && node scripts/3-test-worker.js",
-    "llamada":        "node scripts/5-llamada-real.js",
-    "estado":         "node scripts/6-ver-estado.js",
-    "limpiar":        "node scripts/7-limpiar-llamadas.js --todas",
-    "tunnel": "C:\\ngrok\\ngrok.exe http 3000"
+    "start":        "node index.js",
+    "dev":          "node --watch index.js",
+    "estado":       "node scripts/6-ver-estado.js",
+    "limpiar":      "node scripts/resetear-bd.js",
+    "limpiar:total":"node scripts/resetear-bd.js --total",
+    "llamada":      "node scripts/5-llamada-real.js",
+    "tunnel":       "C:\\ngrok\\ngrok.exe http 3000"
   },
   "dependencies": {
     "axios": "^1.7.2",
@@ -22,6 +18,9 @@
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
     "pg": "^8.12.0"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "private": true
 }

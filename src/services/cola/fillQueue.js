@@ -1,48 +1,48 @@
 /**
  * src/services/cola/fillQueue.js – Fill the call queue for a time slot
- *
- * Equivalent to:
- *   - "Crear cola de pendientes" (calls llenar_cola_llamadas RPC) in Varios
- *   - The priority calculation logic ("Ordenar por prioridad") in Asesor Nueva BD
- *
- * This module replaces the Supabase RPC with a direct INSERT … SELECT from Node.
- *
- * Priority formula:
- *   priority = (ci_total × 10) − (intentos_llamada × 3) − (intentos_franja_actual × 1)
- *              + daysOldBonus (older ultimo_contacto → more urgency)
- *
- * Default hora_programada per franja:
- *   manana  → 09:00
- *   tarde   → 15:00
- *   noche   → 19:00
  */
 'use strict';
 
-const { getCandidatesForQueue } = require('../../db/candidatos');
-const { bulkInsertQueue }       = require('../../db/cola');
-const { getEnCursoResultadoId, getPendienteEstadoId } = require('../../db/lookups');
-const { colombiaDateString }    = require('../../utils/dateHelpers');
-const logger                    = require('../../utils/logger');
+const { getCandidatesForQueue }                        = require('../../db/candidatos');
+const { bulkInsertQueue, countQueueItemsForFranja }    = require('../../db/cola');
+const { colombiaHour, colombiaDateString }             = require('../../utils/dateHelpers');
+const logger                                           = require('../../utils/logger');
 
-/** Default call time per franja */
-const DEFAULT_HORA = {
-  manana: '09:00',
-  tarde:  '15:00',
-  noche:  '19:00',
-};
+const DEFAULT_HORA = { manana: '09:00', tarde: '15:00', noche: '19:00' };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Returns true if a HH:MM time string falls inside the valid range for a franja.
- * Used to decide whether a candidate's hora_preferida_llamada is compatible.
- *
- * manana  → 06:00–12:59
- * tarde   → 14:00–18:59
- * noche   → 19:00–21:59
- *
- * @param {string} horaStr  – e.g. '19:00'
- * @param {string} franja   – 'manana' | 'tarde' | 'noche'
- * @returns {boolean}
+ * Returns the active franja for the current Colombia time, or null if outside
+ * all calling windows.
+ *   manana  → 06:00 – 12:59
+ *   tarde   → 14:00 – 18:59
+ *   noche   → 19:00 – 21:59
+ * @returns {'manana'|'tarde'|'noche'|null}
  */
+function getFranjaActual() {
+  const hora = colombiaHour();
+  if (hora >= 6  && hora < 13) return 'manana';
+  if (hora >= 14 && hora < 19) return 'tarde';
+  if (hora >= 19 && hora < 22) return 'noche';
+  return null;
+}
+
+/**
+ * Returns every franja whose start time has already passed today.
+ * manana starts at 06:00, tarde at 14:00, noche at 19:00.
+ * @returns {string[]}
+ */
+function getFranjasPasadasHoy() {
+  const hora = colombiaHour();
+  const franjas = [];
+  if (hora >= 6)  franjas.push('manana');
+  if (hora >= 14) franjas.push('tarde');
+  if (hora >= 19) franjas.push('noche');
+  return franjas;
+}
+
+/** Returns true if HH:MM falls inside the franja window. */
 function horaFitsFranja(horaStr, franja) {
   if (!horaStr) return false;
   const h = parseInt(horaStr.split(':')[0], 10);
@@ -52,87 +52,132 @@ function horaFitsFranja(horaStr, franja) {
   return false;
 }
 
-/**
- * Compute a numeric priority for a candidate.
- * Higher value = processed first.
- *
- * @param {object} candidato – row from candidatos + ci_total
- * @returns {number}
- */
+/** Compute numeric priority (higher = called first). */
 function computePriority(candidato) {
-  const ciTotal            = Number(candidato.ci_total)            || 0;
-  const intentos           = Number(candidato.intentos_llamada)    || 0;
-  const intentosFranja     = Number(candidato.intentos_franja_actual) || 0;
-
-  // Days since last contact (null = never contacted → highest urgency bonus)
-  let daysBonus = 0;
+  const ciTotal        = Number(candidato.ci_total)              || 0;
+  const intentos       = Number(candidato.intentos_llamada)      || 0;
+  const intentosFranja = Number(candidato.intentos_franja_actual) || 0;
+  let daysBonus = 10;
   if (candidato.ultimo_contacto) {
-    const msPerDay   = 24 * 60 * 60 * 1000;
-    const daysSince  = Math.floor((Date.now() - new Date(candidato.ultimo_contacto).getTime()) / msPerDay);
-    daysBonus        = Math.min(daysSince, 10); // cap at 10 to avoid overflow
-  } else {
-    daysBonus = 10; // never contacted → max bonus
+    const daysSince = Math.floor(
+      (Date.now() - new Date(candidato.ultimo_contacto).getTime()) / 86_400_000,
+    );
+    daysBonus = Math.min(daysSince, 10);
   }
-
   return (ciTotal * 10) - (intentos * 3) - (intentosFranja * 1) + daysBonus;
 }
 
+// ─── Core fill ────────────────────────────────────────────────────────────────
+
 /**
  * Fill cola_llamadas for a given franja.
- *
- * Scheduled 3×/day by src/schedulers/index.js
+ * Idempotent — safe to call multiple times; duplicates are silently skipped.
  *
  * @param {'manana'|'tarde'|'noche'} franja
- * @returns {Promise<number>} – number of rows inserted
+ * @returns {Promise<number>} rows inserted
  */
 async function llenarColaParaFranja(franja) {
-  const validFranjas = ['manana', 'tarde', 'noche'];
-  if (!validFranjas.includes(franja)) {
-    throw new Error(`Invalid franja: ${franja}. Must be one of: ${validFranjas.join(', ')}`);
+  if (!['manana', 'tarde', 'noche'].includes(franja)) {
+    throw new Error(`Franja inválida: "${franja}"`);
   }
 
-  logger.info({ event: 'fill_queue_start', franja }, `Filling call queue for franja: ${franja}`);
+  logger.info({ event: 'fill_queue_start', franja }, `Filling queue for franja: ${franja}`);
 
-  // Resolve lookup IDs dynamically (first run fetches from DB, then cached)
-  const [pendienteEstadoId, enCursoResultadoId] = await Promise.all([
-    getPendienteEstadoId(),
-    getEnCursoResultadoId(),
-  ]);
-
-  // Fetch eligible candidates
-  const candidates = await getCandidatesForQueue(pendienteEstadoId, enCursoResultadoId);
+  const candidates = await getCandidatesForQueue(franja);
 
   if (candidates.length === 0) {
-    logger.info({ event: 'fill_queue_empty', franja }, 'No eligible candidates found');
+    logger.info({ event: 'fill_queue_empty', franja }, 'No eligible candidates');
     return 0;
   }
 
-  const fechaHoy       = colombiaDateString();
-  const horaPorDefecto = DEFAULT_HORA[franja];
-
-  // Build queue entries with computed priorities.
-  // hora_programada: use the candidate's preferred time ONLY if it actually
-  // falls within this franja's window. Otherwise use the franja default.
-  // This fixes the bug where hora_preferida_llamada='19:00' was inserted for
-  // franja='manana', resulting in an inconsistent schedule.
-  const entries = candidates.map((c) => ({
+  const fechaHoy = colombiaDateString();
+  const entries  = candidates.map((c) => ({
     candidatoId:      c.id,
     prioridad:        computePriority(c),
     franjaProgramada: franja,
     horaProgramada:   horaFitsFranja(c.hora_preferida_llamada, franja)
       ? c.hora_preferida_llamada
-      : horaPorDefecto,
+      : DEFAULT_HORA[franja],
   }));
 
   const inserted = await bulkInsertQueue(entries, fechaHoy);
 
   logger.info(
     { event: 'fill_queue_done', franja, candidates: candidates.length, inserted },
-    `Queue filled: ${inserted} rows inserted for franja ${franja}`,
+    `Queue filled: ${inserted} new row(s) for ${franja}`,
   );
-
   return inserted;
 }
 
-module.exports = { llenarColaParaFranja };
+// ─── Smart startup initializer ────────────────────────────────────────────────
 
+/**
+ * Intelligent startup fill — called automatically when the app boots.
+ *
+ * Determines which franjas should have been filled already today (based on
+ * current Colombia time) and fills only those that have zero items in the queue.
+ *
+ * Examples:
+ *   - Boot at 09:00 → checks manana  → 0 items → fills manana
+ *   - Boot at 15:00 → checks manana (items exist → skip) + tarde (0 → fills)
+ *   - Boot at 20:00 → checks manana (skip) + tarde (skip) + noche (0 → fills)
+ *   - Boot at 04:00 → no franjas started yet → nothing to do
+ *   - DB was reset  → all franjas show 0 items → fills everything needed
+ *
+ * This means you NEVER need to run `npm run llenar:todas` manually.
+ * The cron jobs handle the normal daily schedule; this handles restarts.
+ *
+ * @returns {Promise<void>}
+ */
+async function inicializarColaDelDia() {
+  const franjasPasadas = getFranjasPasadasHoy();
+
+  if (franjasPasadas.length === 0) {
+    logger.info(
+      { event: 'startup_fill_skip', hora: colombiaHour() },
+      'Startup: antes del inicio del día de llamadas (< 06:00) – nada que hacer',
+    );
+    return;
+  }
+
+  logger.info(
+    { event: 'startup_init_start', franjas: franjasPasadas },
+    `Startup: verificando cola para franjas del día → [${franjasPasadas.join(', ')}]`,
+  );
+
+  const fechaHoy = colombiaDateString();
+
+  for (const franja of franjasPasadas) {
+    try {
+      const existentes = await countQueueItemsForFranja(fechaHoy, franja);
+
+      if (existentes > 0) {
+        logger.info(
+          { event: 'startup_fill_skip_franja', franja, existentes },
+          `Startup: franja "${franja}" ya tiene ${existentes} item(s) hoy → se omite`,
+        );
+        continue;
+      }
+
+      // No items for this franja today → fill it now
+      logger.info(
+        { event: 'startup_fill_franja', franja },
+        `Startup: franja "${franja}" sin items hoy → llenando...`,
+      );
+      const inserted = await llenarColaParaFranja(franja);
+      logger.info(
+        { event: 'startup_fill_franja_done', franja, inserted },
+        `Startup: franja "${franja}" → ${inserted} candidato(s) encolado(s)`,
+      );
+    } catch (err) {
+      logger.error(
+        { event: 'startup_fill_franja_error', franja, err: err.message },
+        `Startup: error llenando franja "${franja}" – el worker lo reintentará vía backfill`,
+      );
+    }
+  }
+
+  logger.info({ event: 'startup_init_done' }, 'Startup: inicialización de cola completada');
+}
+
+module.exports = { llenarColaParaFranja, getFranjaActual, inicializarColaDelDia };

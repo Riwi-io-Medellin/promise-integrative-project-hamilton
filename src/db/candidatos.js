@@ -6,24 +6,20 @@
 const pool = require('./pool');
 
 /**
- * Returns all candidates that are eligible to be queued for a given franja.
+ * Returns all candidates eligible to be added to the call queue for a given franja.
  *
- * Eligibility rules (mirrors the llenar_cola_llamadas RPC logic):
- *   1. estado_gestion_id = ID of 'PENDIENTE'
- *   2. evento_asignado_id IS NULL  (not already scheduled)
- *   3. No llamada already completed today
- *      (llamadas.candidato_id = candidatos.id
- *       AND fecha_hora_llamada::date = CURRENT_DATE
- *       AND resultado_id <> EN_CURSO id)
- *   4. No cola_llamadas row for today with estado IN ('PENDIENTE','EN_CURSO')
+ * Eligibility rules:
+ *   1. estado_gestion IN ('PENDIENTE', 'NO_CONTESTA')
+ *   2. evento_asignado_id IS NULL  – not already scheduled
+ *   3. No ACTIVE queue row today (PENDIENTE/EN_CURSO) in ANY franja
+ *      → prevents calling someone who is currently being processed
+ *   4. No queue row today for THIS specific franja (any estado)
+ *      → prevents duplicate manana/tarde/noche entries on the same day
  *
- * Also joins candidato_ideal to get ci_total for priority calculation.
- *
- * @param {number} pendienteEstadoId  – estados_gestion.id for 'PENDIENTE'
- * @param {number} enCursoResultadoId – resultados_llamada.id for 'EN_CURSO'
+ * @param {string} franja – 'manana' | 'tarde' | 'noche'
  * @returns {Promise<Array>}
  */
-async function getCandidatesForQueue(pendienteEstadoId, enCursoResultadoId) {
+async function getCandidatesForQueue(franja) {
   const { rows } = await pool.query(
     `
     SELECT
@@ -41,31 +37,34 @@ async function getCandidatesForQueue(pendienteEstadoId, enCursoResultadoId) {
       c.horario_id,
       c.franja_actual,
       c.hora_preferida_llamada,
-      COALESCE(ci.ci_total, 0) AS ci_total
+      h.codigo                    AS horario_codigo,
+      COALESCE(ci.ci_total, 0)    AS ci_total
     FROM public.candidatos c
-    LEFT JOIN public.candidato_ideal ci ON ci.candidato_id = c.id
+    LEFT JOIN public.candidato_ideal  ci ON ci.candidato_id = c.id
+    LEFT JOIN public.horarios         h  ON h.id            = c.horario_id
+    JOIN  public.estados_gestion      eg ON eg.id           = c.estado_gestion_id
     WHERE
-      -- Rule 1: must be in PENDIENTE management state
-      c.estado_gestion_id = $1
-      -- Rule 2: must not be already scheduled for an event
+      -- Rule 1: callable states
+      eg.codigo IN ('PENDIENTE', 'NO_CONTESTA')
+      -- Rule 2: not already scheduled
       AND c.evento_asignado_id IS NULL
-      -- Rule 3: no completed call today (non-EN_CURSO result)
-      AND NOT EXISTS (
-        SELECT 1 FROM public.llamadas l
-        WHERE l.candidato_id = c.id
-          AND l.fecha_hora_llamada::date = CURRENT_DATE
-          AND l.resultado_id <> $2
-      )
-      -- Rule 4: no active queue row for today
+      -- Rule 3: no active queue row today (any franja)
       AND NOT EXISTS (
         SELECT 1 FROM public.cola_llamadas cl
-        WHERE cl.candidato_id = c.id
+        WHERE cl.candidato_id    = c.id
           AND cl.fecha_programada = CURRENT_DATE
           AND cl.estado IN ('PENDIENTE', 'EN_CURSO')
       )
+      -- Rule 4: not already in THIS franja today (avoids duplicate manana/tarde/noche)
+      AND NOT EXISTS (
+        SELECT 1 FROM public.cola_llamadas cl
+        WHERE cl.candidato_id    = c.id
+          AND cl.fecha_programada = CURRENT_DATE
+          AND cl.franja_programada = $1
+      )
     ORDER BY ci_total DESC, c.intentos_llamada ASC
     `,
-    [pendienteEstadoId, enCursoResultadoId],
+    [franja],
   );
   return rows;
 }

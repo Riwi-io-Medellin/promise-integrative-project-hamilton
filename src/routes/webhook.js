@@ -3,17 +3,16 @@
  *
  * POST /webhook/elevenlabs-resultado
  *
- * Replaces the Webhook node in the "Asesor Nueva BD" n8n flow
- * (previously at path c7110bc4-8aac-4e71-b16b-7628b6e68105).
- *
- * Expected body from ElevenLabs:
+ * Expected body from ElevenLabs agent:
  * {
- *   "resultado":    "AGENDADO",
- *   "dia":          "miércoles",
- *   "hora":         "7:00 PM",
- *   "candidato_id": "b243b83d-341c-43d6-a2f7-10dd0a0a8091",
- *   "evento_id":    2,
- *   "nota":         "Candidate agreed to schedule interview"
+ *   "candidato_id":      "uuid",          ← required
+ *   "resultado":         "AGENDADO",      ← required  (resultados_llamada.codigo)
+ *   "dia":               "miércoles",     ← when AGENDADO
+ *   "hora":              "7:00 PM",       ← when AGENDADO
+ *   "evento_id":         2,               ← when AGENDADO
+ *   "nota":              "...",           ← optional summary
+ *   "hora_callback":     "21:00",         ← optional HH:MM; schedules a PERSONALIZADA call
+ *   "duracion_segundos": 120              ← optional
  * }
  */
 'use strict';

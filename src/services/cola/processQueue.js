@@ -1,47 +1,58 @@
 /**
  * src/services/cola/processQueue.js – Queue worker
  *
- * Equivalent to the second Schedule Trigger flow in Varios (every 10 seconds):
- *   "Contar llamadas activas" → "Calcular disponibles" → "¿Hay espacio?"
- *   → "Traer siguiente cola" → "Ordenar por prioridad"
- *   → for each item: "Marcar EN_CURSO en cola" → "Traer candidato completo"
- *      → "Obtener motivo_llamada" → "Obtener Eventos"
- *      → "Parseo de fecha" → "Validar horario de llamada"
- *      → "JSON ElevenLabs" → "HTTP Request" → "Crear Llamada"
+ * Every INTERVAL_SECONDS the worker:
+ *   1. (Backfill)   If enough time has passed, fills the queue for the current franja.
+ *                   This catches candidates whose previous franja call finished AFTER
+ *                   the regular cron ran, ensuring they are not skipped.
+ *   2. (Slots)      Counts active EN_CURSO calls and calculates available capacity.
+ *   3. (Process)    Fetches PENDIENTE items ordered: personalizada(0) → manana(1)
+ *                   → tarde(2) → noche(3), then by prioridad DESC.
+ *                   This guarantees mañana calls finish before tarde starts, etc.
+ *   4. (Call)       For each item, validates the call window and fires the outbound call.
  *
- * Behavior when outside call window:
- *   The queue item is left as PENDIENTE and will be retried on the next iteration.
- *   This mirrors the n8n behavior where Validar horario returns [] (empty) and
- *   the flow simply ends without processing that item.
+ * PERSONALIZADA items:
+ *   Created when a candidate asks "call me back at X time".
+ *   Their hora_programada is checked at the SQL level (only returned once time arrived).
+ *   The candidate's default schedule constraint is bypassed — only the global
+ *   window (06:00–22:00) applies, since the callback was explicitly requested.
+ *
+ * Stale call resolution:
+ *   EN_CURSO llamadas older than STALE_CALL_MINUTES are auto-resolved as NO_CONTESTA
+ *   so they never permanently block Twilio slots.
  */
 'use strict';
 
-const { countActiveCalls }    = require('../../db/llamadas');
+const { countActiveCalls }                  = require('../../db/llamadas');
 const { getPendingQueueItems, markQueueItemEnCurso } = require('../../db/cola');
-const { getCandidatoById }    = require('../../db/candidatos');
-const { getAvailableEvents }  = require('../../db/eventos');
+const { getCandidatoById }                  = require('../../db/candidatos');
+const { getAvailableEvents }                = require('../../db/eventos');
 const { getMotivoById, getEnCursoResultadoId } = require('../../db/lookups');
-const { makeOutboundCall }    = require('../llamadas/callService');
-const { isCallWindowOpen }    = require('../../utils/timeValidator');
-const { colombiaDateString }  = require('../../utils/dateHelpers');
-const pool                    = require('../../db/pool');
-const logger                  = require('../../utils/logger');
+const { makeOutboundCall }                  = require('../llamadas/callService');
+const { isCallWindowOpen }                  = require('../../utils/timeValidator');
+const { colombiaDateString }                = require('../../utils/dateHelpers');
+const { llenarColaParaFranja, getFranjaActual } = require('./fillQueue');
+const pool                                  = require('../../db/pool');
+const logger                                = require('../../utils/logger');
 
-const MAX_CONCURRENT_CALLS  = Number(process.env.MAX_CONCURRENT_CALLS)           || 4;
-const INTERVAL_SECONDS      = Number(process.env.QUEUE_WORKER_INTERVAL_SECONDS)  || 10;
-// Llamadas EN_CURSO con más de este tiempo se consideran colgadas y se auto-resuelven
-const STALE_CALL_MINUTES    = Number(process.env.STALE_CALL_MINUTES)             || 30;
+const MAX_CONCURRENT_CALLS = Number(process.env.MAX_CONCURRENT_CALLS)          || 4;
+const INTERVAL_SECONDS     = Number(process.env.QUEUE_WORKER_INTERVAL_SECONDS) || 10;
+const STALE_CALL_MINUTES   = Number(process.env.STALE_CALL_MINUTES)            || 30;
+// How often (ms) the worker triggers a queue backfill for the current franja.
+// Keeps the queue populated even when mañana calls finish after the tarde cron ran.
+const BACKFILL_INTERVAL_MS = Number(process.env.BACKFILL_INTERVAL_MINUTES || 5) * 60 * 1000;
 
-let workerRunning = false; // Prevent overlapping iterations
+let workerRunning  = false;
+let lastBackfillAt = 0; // epoch ms of last successful backfill
+
+// ── Stale call resolver ───────────────────────────────────────────────────────
 
 /**
- * Auto-resolve stale EN_CURSO llamadas that have been active for too long.
+ * Auto-resolve EN_CURSO llamadas that have been active for too long.
+ * Prevents stale calls from permanently blocking Twilio slots.
  *
- * This happens when:
- *  - ElevenLabs never sent the webhook (e.g. mock tests, network error)
- *  - The server was restarted mid-call
- *
- * Stale calls are marked as NO_CONTESTA so they don't permanently block slots.
+ * @param {number} enCursoId
+ * @returns {Promise<number>} – rows resolved
  */
 async function resolveStaleActiveCalls(enCursoId) {
   const { rows: noContestaRows } = await pool.query(
@@ -50,13 +61,13 @@ async function resolveStaleActiveCalls(enCursoId) {
   if (!noContestaRows.length) return 0;
   const noContestaId = noContestaRows[0].id;
 
+  // 1. Mark stale EN_CURSO llamadas as NO_CONTESTA
   const { rowCount } = await pool.query(
     `UPDATE public.llamadas
      SET resultado_id = $1,
          resumen      = 'Auto-resuelta: sin respuesta del webhook tras ' || $2 || ' minutos'
      WHERE resultado_id = $3
-       AND fecha_hora_llamada < NOW() - ($2 || ' minutes')::interval
-     RETURNING id`,
+       AND fecha_hora_llamada < NOW() - ($2 || ' minutes')::interval`,
     [noContestaId, STALE_CALL_MINUTES, enCursoId],
   );
 
@@ -66,56 +77,105 @@ async function resolveStaleActiveCalls(enCursoId) {
       `Resolved ${rowCount} stale EN_CURSO call(s) older than ${STALE_CALL_MINUTES} min`,
     );
   }
+
+  // 2. Cancel orphaned EN_CURSO cola items:
+  //    a cola item is "orphaned" when it's EN_CURSO but the candidate has
+  //    NO active EN_CURSO llamada (the call ended or was never created properly).
+  //
+  //    NOTE: fecha_programada is stored using colombiaDateString() (UTC-5), while
+  //    PostgreSQL's CURRENT_DATE uses the server clock (UTC). After midnight UTC
+  //    (= 7 PM Colombia) the dates differ and the old filter missed stuck items.
+  //    We intentionally check ALL dates so items from any day get resolved.
+  const { rowCount: colaRowCount } = await pool.query(
+    `UPDATE public.cola_llamadas
+     SET estado = 'CANCELADA'
+     WHERE estado = 'EN_CURSO'
+       AND NOT EXISTS (
+         SELECT 1 FROM public.llamadas l
+         WHERE l.candidato_id = cola_llamadas.candidato_id
+           AND l.resultado_id = $1
+       )`,
+    [enCursoId],
+  );
+
+  if (colaRowCount > 0) {
+    logger.warn(
+      { event: 'orphaned_cola_resolved', count: colaRowCount },
+      `Cancelled ${colaRowCount} orphaned EN_CURSO cola item(s)`,
+    );
+  }
+
   return rowCount;
 }
 
+// ── Backfill ──────────────────────────────────────────────────────────────────
+
+/**
+ * Fills the queue for the current franja if enough time has passed since the last fill.
+ * This is the safety net that handles the case where a mañana call finishes after the
+ * tarde cron already ran — those candidates would otherwise miss their tarde call.
+ */
+async function maybeBackfillQueue() {
+  const now     = Date.now();
+  const franja  = getFranjaActual();
+
+  if (!franja) return; // outside all calling windows — nothing to backfill
+  if (now - lastBackfillAt < BACKFILL_INTERVAL_MS) return; // too soon
+
+  lastBackfillAt = now;
+  try {
+    const inserted = await llenarColaParaFranja(franja);
+    if (inserted > 0) {
+      logger.info(
+        { event: 'backfill_done', franja, inserted },
+        `Backfill: added ${inserted} new item(s) for franja ${franja}`,
+      );
+    }
+  } catch (err) {
+    logger.error({ event: 'backfill_error', franja, err: err.message }, 'Queue backfill failed');
+  }
+}
+
+// ── Main iteration ────────────────────────────────────────────────────────────
+
 /**
  * Single iteration of the queue worker.
- *
- * Steps:
- *  1. Count active calls → calculate available slots.
- *  2. If no slots, stop.
- *  3. Fetch PENDIENTE queue items for today (up to `available` rows).
- *  4. For each item:
- *     a. Validate call window (horario_id → horarios.codigo).
- *     b. Mark as EN_CURSO.
- *     c. Fetch candidate, motivo, available events.
- *     d. Make outbound call via ElevenLabs.
- *     e. Record llamada in DB.
  */
 async function runQueueIteration() {
   const enCursoId = await getEnCursoResultadoId();
 
-  // ── Limpiar llamadas colgadas ANTES de contar ─────────────────────────────
+  // ── 0. Backfill (idempotent, rate-limited) ────────────────────────────────
+  await maybeBackfillQueue();
+
+  // ── 1. Resolve stale calls ────────────────────────────────────────────────
   await resolveStaleActiveCalls(enCursoId);
 
-  // ── Contar llamadas activas reales ────────────────────────────────────────
+  // ── 2. Count active calls and calculate slots ─────────────────────────────
   const activeCount = await countActiveCalls(enCursoId);
   const available   = Math.max(0, MAX_CONCURRENT_CALLS - activeCount);
 
   logger.info(
     { event: 'queue_iteration', active: activeCount, available, max: MAX_CONCURRENT_CALLS },
-    `Queue worker: ${activeCount} active, ${available} slots available`,
+    `Worker tick: ${activeCount} active, ${available} slot(s) available`,
   );
 
-  // ── Step 2: Check available slots ─────────────────────────────────────────
   if (available <= 0) {
-    logger.info({ event: 'queue_no_slots' }, 'No available slots, skipping iteration');
+    logger.info({ event: 'queue_no_slots' }, 'No available slots – skipping iteration');
     return;
   }
 
-  // ── Step 3: Fetch pending queue items ──────────────────────────────────────
+  // ── 3. Fetch pending items (ordered: franja ASC, prioridad DESC) ──────────
   const today = colombiaDateString();
-  const items = await getPendingQueueItems(today, available);
+  const items  = await getPendingQueueItems(today, available);
 
   if (items.length === 0) {
-    logger.info({ event: 'queue_empty_today', fecha: today }, 'No pending queue items for today');
+    logger.info({ event: 'queue_empty_today', fecha: today }, 'No pending items for today');
     return;
   }
 
-  logger.info({ event: 'queue_processing', count: items.length }, `Processing ${items.length} queue item(s)`);
+  logger.info({ event: 'queue_processing', count: items.length }, `Processing ${items.length} item(s)`);
 
-  // ── Step 4: Process each item sequentially ────────────────────────────────
+  // ── 4. Process each item sequentially ────────────────────────────────────
   for (const item of items) {
     try {
       await processQueueItem(item);
@@ -128,82 +188,86 @@ async function runQueueIteration() {
   }
 }
 
+// ── Single item processor ─────────────────────────────────────────────────────
+
 /**
- * Process a single cola_llamadas item.
+ * Process one cola_llamadas item.
  *
- * @param {object} item – cola_llamadas row
+ * @param {object} item – row from cola_llamadas
  */
 async function processQueueItem(item) {
-  // ── a. Fetch candidate with horario info ───────────────────────────────────
+  // ── a. Fetch candidato ────────────────────────────────────────────────────
   const candidato = await getCandidatoById(item.candidato_id);
   if (!candidato) {
-    logger.warn({ event: 'candidato_not_found', candidato_id: item.candidato_id }, 'Candidate not found');
+    logger.warn({ event: 'candidato_not_found', candidato_id: item.candidato_id }, 'Candidate not found – skipping');
     return;
   }
 
-  // ── b. Validate call window ────────────────────────────────────────────────
-  // Equivalent to "Validar horario de llamada" node in Varios
-  const horarioCodigo = candidato.horario_codigo || null;
-  if (!isCallWindowOpen(horarioCodigo)) {
+  // ── b. Validate call window ───────────────────────────────────────────────
+  // We check the GLOBAL window (06:00–22:00 Colombia) only.
+  // The candidate's horario_codigo (AM/PM/AMPM) is a scheduling priority hint —
+  // it influenced WHEN they were queued, but must NOT block the call itself.
+  // If they didn't answer in their preferred window we still call them now.
+  // PERSONALIZADA items: SQL already ensures hora_programada has arrived.
+  if (!isCallWindowOpen(null)) {
     logger.info(
-      { event: 'call_window_closed', candidato_id: candidato.id, horario: horarioCodigo },
-      'Call window closed – leaving item as PENDIENTE for next iteration',
+      { event: 'call_window_closed', candidato_id: candidato.id, franja: item.franja_programada },
+      'Outside global calling window (06:00–22:00) – leaving item as PENDIENTE',
     );
-    // Leave the item in PENDIENTE state – it will be retried in the next iteration
     return;
   }
 
   // ── c. Mark queue item as EN_CURSO ────────────────────────────────────────
-  // Equivalent to "Marcar EN_CURSO en cola" node in Varios
   await markQueueItemEnCurso(item.id);
 
-  // ── d. Fetch motivo_llamada ────────────────────────────────────────────────
-  // Equivalent to "Obtener motivo_llamada" node in Varios
-  let motivo = candidato.fase_actual; // fallback
+  // ── d. Resolve motivo_llamada ─────────────────────────────────────────────
+  let motivo = candidato.fase_actual; // safe fallback
   if (candidato.motivo_llamada_id) {
     const motivoRow = await getMotivoById(candidato.motivo_llamada_id);
     if (motivoRow) motivo = motivoRow.codigo;
   }
 
   // ── e. Fetch available events ─────────────────────────────────────────────
-  // Equivalent to "Obtener Eventos" node in Varios
-  // tipo_reunion matches candidato.fase_actual
   const eventos = await getAvailableEvents(candidato.fase_actual);
 
   logger.info(
     {
-      event:         'processing_candidate',
-      candidato_id:  candidato.id,
-      nombre:       `${candidato.nombre} ${candidato.apellido}`,
-      ciudad:        candidato.ciudad,
-      fase_actual:   candidato.fase_actual,
+      event:          'processing_candidate',
+      candidato_id:   candidato.id,
+      nombre:        `${candidato.nombre} ${candidato.apellido}`,
+      franja:         item.franja_programada,
+      fase_actual:    candidato.fase_actual,
       motivo,
-      intentos:      candidato.intentos_llamada,
-      eventos_count: eventos.length,
+      intentos:       candidato.intentos_llamada,
+      eventos_count:  eventos.length,
     },
     'Preparing outbound call',
   );
 
-  // ── f. Make outbound call + create llamada record ─────────────────────────
-  // Equivalent to "HTTP Request" + "Code in JavaScript" + "Crear Llamada" nodes
+  // ── f. Fire outbound call + create llamada record ─────────────────────────
   await makeOutboundCall(candidato, motivo, eventos);
 }
 
+// ── Worker loop ───────────────────────────────────────────────────────────────
+
 /**
- * Start the background queue worker loop.
- *
- * Runs every INTERVAL_SECONDS seconds using setInterval.
- * Uses a flag to prevent overlapping executions.
+ * Start the background queue worker.
+ * Uses a flag to prevent overlapping iterations.
  */
 function startQueueWorker() {
   logger.info(
-    { event: 'queue_worker_start', interval_seconds: INTERVAL_SECONDS, stale_minutes: STALE_CALL_MINUTES },
-    `Queue worker started (every ${INTERVAL_SECONDS}s, stale timeout: ${STALE_CALL_MINUTES}min)`,
+    {
+      event:            'queue_worker_start',
+      interval_seconds: INTERVAL_SECONDS,
+      stale_minutes:    STALE_CALL_MINUTES,
+      backfill_minutes: BACKFILL_INTERVAL_MS / 60000,
+    },
+    `Queue worker started (tick: ${INTERVAL_SECONDS}s | stale: ${STALE_CALL_MINUTES}min | backfill: ${BACKFILL_INTERVAL_MS / 60000}min)`,
   );
 
   setInterval(async () => {
     if (workerRunning) {
-      logger.warn({ event: 'queue_worker_overlap' }, 'Previous iteration still running, skipping');
+      logger.warn({ event: 'queue_worker_overlap' }, 'Previous iteration still running – skipping tick');
       return;
     }
     workerRunning = true;

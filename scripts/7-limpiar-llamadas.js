@@ -72,6 +72,20 @@ async function run() {
   const result = await pool.query(sql, params);
   console.log(`\n✅ ${result.rowCount} llamada(s) marcadas como NO_CONTESTA`);
 
+  // ── Limpiar cola_llamadas EN_CURSO ───────────────────────────────────────
+  // Si la llamada fue limpiada manualmente, el webhook nunca llegará para
+  // actualizar la cola. Lo hacemos acá para que el candidato pueda ser
+  // re-encolado en la siguiente ronda.
+  // NOTA: no se filtra por fecha_programada para capturar también items de
+  // días anteriores que quedaron colgados (fecha_programada usa hora Colombia,
+  // CURRENT_DATE usa UTC → pueden diferir entre 7 PM y medianoche Colombia).
+  const colaResult = await pool.query(`
+    UPDATE public.cola_llamadas
+    SET estado = 'CANCELADA'
+    WHERE estado = 'EN_CURSO'
+  `);
+  console.log(`✅ ${colaResult.rowCount} item(s) de cola marcados como CANCELADA`);
+
   // Ver cuántas quedan
   const { rows: despues } = await pool.query(
     "SELECT COUNT(*) AS total FROM public.llamadas l JOIN public.resultados_llamada r ON r.id = l.resultado_id WHERE r.codigo = 'EN_CURSO'"
