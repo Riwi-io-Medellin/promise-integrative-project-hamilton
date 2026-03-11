@@ -32,6 +32,27 @@ const DEFAULT_HORA = {
 };
 
 /**
+ * Returns true if a HH:MM time string falls inside the valid range for a franja.
+ * Used to decide whether a candidate's hora_preferida_llamada is compatible.
+ *
+ * manana  → 06:00–12:59
+ * tarde   → 14:00–18:59
+ * noche   → 19:00–21:59
+ *
+ * @param {string} horaStr  – e.g. '19:00'
+ * @param {string} franja   – 'manana' | 'tarde' | 'noche'
+ * @returns {boolean}
+ */
+function horaFitsFranja(horaStr, franja) {
+  if (!horaStr) return false;
+  const h = parseInt(horaStr.split(':')[0], 10);
+  if (franja === 'manana') return h >= 6  && h < 13;
+  if (franja === 'tarde')  return h >= 14 && h < 19;
+  if (franja === 'noche')  return h >= 19 && h < 22;
+  return false;
+}
+
+/**
  * Compute a numeric priority for a candidate.
  * Higher value = processed first.
  *
@@ -86,15 +107,21 @@ async function llenarColaParaFranja(franja) {
     return 0;
   }
 
-  const fechaHoy      = colombiaDateString();
+  const fechaHoy       = colombiaDateString();
   const horaPorDefecto = DEFAULT_HORA[franja];
 
-  // Build queue entries with computed priorities
+  // Build queue entries with computed priorities.
+  // hora_programada: use the candidate's preferred time ONLY if it actually
+  // falls within this franja's window. Otherwise use the franja default.
+  // This fixes the bug where hora_preferida_llamada='19:00' was inserted for
+  // franja='manana', resulting in an inconsistent schedule.
   const entries = candidates.map((c) => ({
-    candidatoId:     c.id,
-    prioridad:       computePriority(c),
+    candidatoId:      c.id,
+    prioridad:        computePriority(c),
     franjaProgramada: franja,
-    horaProgramada:  c.hora_preferida_llamada || horaPorDefecto,
+    horaProgramada:   horaFitsFranja(c.hora_preferida_llamada, franja)
+      ? c.hora_preferida_llamada
+      : horaPorDefecto,
   }));
 
   const inserted = await bulkInsertQueue(entries, fechaHoy);

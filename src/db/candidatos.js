@@ -71,7 +71,8 @@ async function getCandidatesForQueue(pendienteEstadoId, enCursoResultadoId) {
 }
 
 /**
- * Fetch a single candidato by id.
+ * Fetch a single candidato by id, including ciudad and nota_previa.
+ * Also brings the resumen of the last completed llamada as nota_previa.
  * @param {string} id – UUID
  * @returns {Promise<object|null>}
  */
@@ -79,9 +80,23 @@ async function getCandidatoById(id) {
   const { rows } = await pool.query(
     `SELECT
        c.*,
-       h.codigo AS horario_codigo
+       h.codigo        AS horario_codigo,
+       m.nombre        AS ciudad,
+       -- nota_previa: use nota_horario if set, otherwise last llamada resumen
+       COALESCE(
+         c.nota_horario,
+         (SELECT l.resumen
+          FROM public.llamadas l
+          JOIN public.resultados_llamada rl ON rl.id = l.resultado_id
+          WHERE l.candidato_id = c.id
+            AND rl.codigo <> 'EN_CURSO'
+          ORDER BY l.fecha_hora_llamada DESC
+          LIMIT 1),
+         ''
+       ) AS nota_previa
      FROM public.candidatos c
-     LEFT JOIN public.horarios h ON h.id = c.horario_id
+     LEFT JOIN public.horarios  h ON h.id = c.horario_id
+     LEFT JOIN public.municipios m ON m.id = c.municipio_id
      WHERE c.id = $1
      LIMIT 1`,
     [id],
@@ -140,4 +155,3 @@ module.exports = {
   getCandidatoById,
   updateCandidato,
 };
-
