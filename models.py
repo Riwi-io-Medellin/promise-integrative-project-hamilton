@@ -1,12 +1,35 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional, Literal
 
-class AgendarCitaTool(BaseModel):
-    """Guarda el resultado del chat, ya sea una cita confirmada, reprogramación o sin acuerdo."""
-    resultado: str = Field(..., description="Estado: 'AGENDADO', 'PENDIENTE', 'NO_INTERESADO', 'NUMERO_INCORRECTO'")
-    dia: Optional[str] = Field(None, description="Solo si se agendó (ej: 'miércoles').")
-    hora: Optional[str] = Field(None, description="Solo si se agendó (ej: '7:00 PM').")
-    nota: Optional[str] = Field(None, description="Detalles útiles para el equipo humano.")
-    fecha_seleccionada_legible: Optional[str] = Field(None, description="Valor exacto de fecha_legible del evento elegido.")
-    candidato_id: str = Field(..., description="UUID del candidato.")
-    evento_id: Optional[int] = Field(None, description="ID del evento elegido.")
+
+class EventoDisponible(BaseModel):
+    fecha_legible: str
+    evento_id: int
+
+
+class SolicitudChat(BaseModel):
+    candidato_id: str
+    telefono: str
+    nombre: str
+    motivo: str
+    ciudad: str
+    lista_horarios: str
+    eventos_disponibles: List[EventoDisponible]
+    nota_previa: Optional[str] = ""
+
+
+class ResultadoCitaChat(BaseModel):
+    # Usamos Literal para FORZAR a la IA a escoger solo una de estas dos opciones exactas
+    estado_conversacion: Literal["EN_CURSO", "FINALIZADA"] = Field(...,
+                                                                   description="Usa 'FINALIZADA' cuando el candidato ya confirmó, dio sus preferencias para esperar, rechazó, o es número equivocado. De lo contrario, 'EN_CURSO'.")
+
+    respuesta_ia_para_usuario: str = Field(...,
+                                           description="El mensaje que se enviará al WhatsApp del candidato. Usa formato de WhatsApp (como *negritas*).")
+
+    # También forzamos el resultado
+    resultado_agenda: Optional[Literal["AGENDADO", "PENDIENTE", "NO_INTERESADO", "NUMERO_INCORRECTO"]] = Field(None,
+                                                                                                               description="El resultado de la negociación.")
+
+    evento_id: Optional[int] = Field(None, description="El ID del evento elegido por el candidato. Null si no agendó.")
+    nota_para_equipo: Optional[str] = Field(None,
+                                            description="Nota adicional para el equipo humano (ej: 'Prefiere en las mañanas').")

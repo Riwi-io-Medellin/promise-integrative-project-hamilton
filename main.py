@@ -1,116 +1,97 @@
 import os
+import httpx
 from fastapi import FastAPI, Request
-from database import supabase, obtener_contexto_candidato
-from ai_agent import procesar_mensaje, generar_prompt_chat, memoria_conversaciones
+from models import SolicitudChat
+from ai_agent import procesar_mensaje, generar_prompt_chat, sesiones_activas
 from whatsapp_utils import enviar_mensaje_whatsapp
+from dotenv import load_dotenv
 
-app = FastAPI(title="Sofia Chatbot Riwi - Evolution API")
+load_dotenv()
+app = FastAPI(title="Sofia Chat Microservicio")
+
+URL_SISTEMA_CENTRAL = os.environ.get("WEBHOOK_SISTEMA_CENTRAL")
 
 
-# =====================================================================
-# 1. ENDPOINT: RECIBIR MENSAJES DE WHATSAPP (WEBHOOK)
-# =====================================================================
+@app.post("/solicitar-chat")
+async def iniciar_chat(solicitud: SolicitudChat):
+    """Recibe la orden desde Sofía Calls para iniciar el chat con un candidato."""
+    telefono = solicitud.telefono.replace("+", "")
+
+    contexto = solicitud.model_dump()
+    sesiones_activas[telefono] = {
+        "candidato_id": solicitud.candidato_id,
+        "contexto_original": contexto,
+        "historial": [
+            {"role": "system", "content": generar_prompt_chat(contexto)}
+        ]
+    }
+
+    # Mensaje inicial basado en la nota previa
+    if solicitud.nota_previa == "Ocupado":
+        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Te escribo de nuevo porque en nuestra llamada anterior estabas ocupado. ¿Tienes un minuto ahora para continuar con tu proceso de beca? Tengo estos espacios para tu {solicitud.motivo}:\n\n{solicitud.lista_horarios}\n\n¿Te funciona alguno?"
+    else:
+        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Hace unos meses te inscribiste con nosotros para formarte como developer. Intentamos contactarte por llamada sin éxito, así que te escribo por aquí. 🚀\n\nPara continuar tu proceso, necesito confirmar tu asistencia a tu {solicitud.motivo}. Tengo estos espacios:\n\n{solicitud.lista_horarios}\n\n¿Cuál te sirve?"
+
+    sesiones_activas[telefono]["historial"].append({"role": "assistant", "content": primer_mensaje})
+    await enviar_mensaje_whatsapp(telefono, primer_mensaje)
+
+    return {"status": "ok", "mensaje": f"Chat iniciado exitosamente con {solicitud.nombre}"}
+
+
 @app.post("/webhook")
-async def recibir_mensaje(request: Request):
-    """Recepción de mensajes desde Evolution API"""
+async def recibir_mensaje_whatsapp(request: Request):
+    """Recibe los mensajes de texto que el usuario envía por WhatsApp (Vía Evolution API)."""
     body = await request.json()
 
-    # Evolution notifica varios eventos, solo nos interesa cuando llega un mensaje nuevo
-    event_type = body.get("event")
-
-    if event_type == "messages.upsert":
+    if body.get("event") == "messages.upsert":
         data = body.get("data", {})
 
-        # Evitar auto-responder a nuestros propios mensajes enviados
+        # Ignorar mensajes propios
         if data.get("key", {}).get("fromMe"):
-            return {"status": "ignorado (mensaje propio)"}
+            return {"status": "ignorado"}
 
-        # Extraer teléfono (Evolution lo envía como '573001234567@s.whatsapp.net')
-        remote_jid = data.get("key", {}).get("remoteJid", "")
-        telefono = remote_jid.split("@")[0]
+        telefono = data.get("key", {}).get("remoteJid", "").split("@")[0]
+        texto = data.get("message", {}).get("conversation") or data.get("message", {}).get("extendedTextMessage",
+                                                                                           {}).get("text", "")
 
-        # Extraer el texto del mensaje del usuario
-        message_data = data.get("message", {})
-        texto = message_data.get("conversation") or message_data.get("extendedTextMessage", {}).get("text", "")
+        if not texto or telefono not in sesiones_activas:
+            return {"status": "ignorado o sin sesión activa"}
 
-        if not texto:
-            return {"status": "ignorado (no es texto)"}
-
-        # 1. Buscar si el candidato existe en BD y obtener sus eventos reales
-        contexto = obtener_contexto_candidato(telefono)
-
-        if not contexto:
-            print(f"Candidato con teléfono {telefono} no encontrado en BD.")
-            return {"status": "ok"}  # Ignoramos números desconocidos
-
-        # 2. Procesar la respuesta con la IA de Sofía
-        respuesta = await procesar_mensaje(telefono, texto, contexto)
-
-        # 3. Enviar la respuesta usando Evolution API
         try:
-            await enviar_mensaje_whatsapp(telefono, respuesta)
-            print(f"Respuesta enviada a {telefono}")
+            # Mandar a procesar a la IA
+            resultado = await procesar_mensaje(telefono, texto)
+
+            # --- NUEVO: Imprimir TODO lo que decidió la IA en consola para debug ---
+            print("\n" + "=" * 40)
+            print(f"📩 MENSAJE DEL USUARIO: {texto}")
+            print(f"🤖 DECISIÓN DE LA IA:")
+            print(resultado.model_dump_json(indent=2))
+            print("=" * 40 + "\n")
+
+            # Responder al usuario por WhatsApp
+            await enviar_mensaje_whatsapp(telefono, resultado.respuesta_ia_para_usuario)
+
+            # Si la IA cerró la negociación, enviar el resultado a Sofía Calls
+            if resultado.estado_conversacion == "FINALIZADA":
+                payload_final = {
+                    "candidato_id": sesiones_activas[telefono]["candidato_id"],
+                    "telefono": telefono,
+                    "resultado_agenda": resultado.resultado_agenda,
+                    "evento_id": resultado.evento_id,
+                    "nota": resultado.nota_para_equipo
+                }
+
+                print(f"✅ CHAT FINALIZADO CORRECTAMENTE. Payload a enviar a la BD: {payload_final}")
+
+                # Enviar al backend de Sofía Calls
+                if URL_SISTEMA_CENTRAL:
+                    async with httpx.AsyncClient() as client:
+                        await client.post(URL_SISTEMA_CENTRAL, json=payload_final)
+
+                # Liberar memoria
+                del sesiones_activas[telefono]
+
         except Exception as e:
-            print(f"Error al enviar mensaje a {telefono}: {e}")
+            print(f"Error procesando mensaje: {e}")
 
     return {"status": "ok"}
-
-
-# =====================================================================
-# 2. ENDPOINT: INICIAR CONVERSACIÓN PROACTIVA (CAMPAÑA)
-# =====================================================================
-@app.post("/iniciar-campana")
-async def iniciar_campana_proactiva():
-    """Endpoint para iniciar conversación con todos los candidatos PENDIENTES"""
-
-    # 1. Buscar el ID del estado 'PENDIENTE' en la tabla estados_gestion
-    resp_estado = supabase.table("estados_gestion").select("id").eq("codigo", "PENDIENTE").execute()
-    if not resp_estado.data:
-        return {"error": "No existe el estado PENDIENTE en la BD"}
-
-    estado_pendiente_id = resp_estado.data[0]["id"]
-
-    # 2. Obtener todos los candidatos que están en estado PENDIENTE
-    resp_candidatos = supabase.table("candidatos").select("telefono").eq("estado_gestion_id",
-                                                                         estado_pendiente_id).execute()
-    candidatos_pendientes = resp_candidatos.data
-
-    if not candidatos_pendientes:
-        return {"mensaje": "No hay candidatos pendientes por contactar."}
-
-    mensajes_enviados = 0
-
-    # 3. Iterar sobre cada candidato y enviarle el primer mensaje
-    for cand in candidatos_pendientes:
-        # Evolution requiere el número sin el '+'. Aseguramos que esté limpio.
-        telefono = cand["telefono"].replace("+", "")
-
-        # Obtenemos su contexto con los eventos reales de la BD
-        contexto = obtener_contexto_candidato(telefono)
-
-        # Si el candidato existe y tiene eventos disponibles en su sede
-        if contexto and contexto["eventos_disponibles"]:
-
-            # Inicializamos la memoria de la IA para esta persona con las instrucciones
-            memoria_conversaciones[telefono] = [
-                {"role": "system", "content": generar_prompt_chat(contexto)}
-            ]
-
-            # Armamos el primer mensaje proactivo
-            primer_mensaje = f"¡Hola {contexto['nombre']}! 👋 Soy Sofía de Riwi. Hace unos meses te inscribiste para formarte como developer y ser parte de nuestras becas 100% condonables. ¡Ya haces parte del proceso! 🚀\n\nPara continuar, necesito confirmar tu asistencia a tu {contexto['motivo']}. Tengo estos espacios disponibles:\n\n{contexto['lista_horarios']}\n\n¿Te funciona alguno?"
-
-            # Lo guardamos en la memoria como si la IA ya lo hubiera dicho
-            memoria_conversaciones[telefono].append({"role": "assistant", "content": primer_mensaje})
-
-            # Lo enviamos por WhatsApp
-            try:
-                await enviar_mensaje_whatsapp(telefono, primer_mensaje)
-                mensajes_enviados += 1
-                print(f"Primer mensaje enviado proactivamente a {telefono}")
-            except Exception as e:
-                print(f"Error enviando mensaje proactivo a {telefono}: {e}")
-
-    return {
-        "status": "Completado",
-        "candidatos_contactados": mensajes_enviados
-    }
