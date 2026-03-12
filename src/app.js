@@ -6,13 +6,17 @@
 const express        = require('express');
 const healthRoutes   = require('./routes/health');
 const webhookRoutes  = require('./routes/webhook');
-const chatbotRoutes = require('../chatbot/chatbot.routes');
+const twilioRoutes   = require('./routes/twilio');
+const agentRoutes    = require('./routes/agent');
+const chatbotRoutes  = require('../chatbot/chatbot.routes');
 const logger         = require('./utils/logger');
 
 const app = express();
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
+// Parse application/x-www-form-urlencoded (Twilio status callbacks)
+app.use(express.urlencoded({ extended: false }));
 
 // Request logger
 app.use((req, _res, next) => {
@@ -21,9 +25,11 @@ app.use((req, _res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────────────────────
-app.use('/health', healthRoutes);
-app.use('/webhook', webhookRoutes);
-app.use('/api/chatbot', chatbotRoutes);
+app.use('/health',       healthRoutes);
+app.use('/webhook',      webhookRoutes);
+app.use('/twilio',       twilioRoutes);
+app.use('/api/agent',    agentRoutes);
+app.use('/api/chatbot',  chatbotRoutes);
 
 // Endpoint temporal solicitado para pruebas directas de envío al webhook
 app.post('/solicitar-chat', async (req, res) => {
