@@ -146,21 +146,40 @@ export const dashboardView = {
     logic: function() {
         // --- 1. EXTRACCIÓN QUIRÚRGICA DE DATOS REALES ---
         const candidatos = JSON.parse(localStorage.getItem('candidatos_riwicalls')) || [];
-        const total = candidatos.length;
+        //const total = candidatos.length;
         // Conteos por estado (asegúrate de que coincidan con los nombres en tu tabla/excel)
-        const admitidos = candidatos.filter(c => c.estado === 'Admitido').length;
-        const interesados = candidatos.filter(c => c.estado === 'Interesado').length;
-        const inscritos = candidatos.filter(c => c.estado === 'Inscrito').length;
-        const llamados = candidatos.filter(c => c.estado === 'Llamado').length;
-        const noInteresados = candidatos.filter(c => c.estado === 'No interesado').length;
+        //const admitidos = candidatos.filter(c => c.estado === 'Admitido').length;
+        //const interesados = candidatos.filter(c => c.estado === 'Interesado').length;
+        //const inscritos = candidatos.filter(c => c.estado === 'Inscrito').length;
+        //const llamados = candidatos.filter(c => c.estado === 'Llamado').length;
+        //const noInteresados = candidatos.filter(c => c.estado === 'No interesado').length;
         
         // Conteos por género
-        const hombres = candidatos.filter(c => (c.genero || c.Género) === 'Masculino').length;
-        const mujeres = candidatos.filter(c => (c.genero || c.Género) === 'Femenino').length;
-        const pctHombres = total > 0 ? (hombres / total) * 100 : 50;
+        //const hombres = candidatos.filter(c => (c.genero || c.Género) === 'Masculino').length;
+        //const mujeres = candidatos.filter(c => (c.genero || c.Género) === 'Femenino').length;
+        //const pctHombres = total > 0 ? (hombres / total) * 100 : 50;
 
-        // --- 2. RENDER MÉTRICAS SUPERIORES (USANDO DATA REAL) ---
+        // --- DATOS QUEMADOS (HARDCODED) ---
+        const total = 10;
+        const interesados = 2;
+        const llamadas = 7;
+        const admitidos = 1;
+
+        // --- RENDER DE LA BARRA SUPERIOR ---
         const metContainer = document.getElementById('metricas-container');
+        if (metContainer) {
+            metContainer.innerHTML = `
+                ${this._renderMetric('Total Candidatos', total, 'users')}
+                ${this._renderMetric('Interesados', interesados, 'star')}
+                ${this._renderMetric('Llamadas Realizadas', llamadas, 'phone-call')}
+                ${this._renderMetric('Admitidos', admitidos, 'check-circle')}
+            `;
+        }
+
+// Para que los iconos se dibujen, añade esta línea al final de la lógica si no la tienes:
+if (window.lucide) lucide.createIcons();        
+        // --- 2. RENDER MÉTRICAS SUPERIORES (USANDO DATA REAL) ---
+        //const metContainer = document.getElementById('metricas-container');
 
         // --- RENDER EDAD ---
         const edadContainer = document.getElementById('barras-edad-container');
