@@ -4,6 +4,7 @@ const {
     SELECT_PENDING_FOR_LOCK,
     MARK_EN_CURSO,
     FETCH_DISPATCH_CONTEXT,
+    FETCH_CANDIDATE_DISPATCH_CONTEXT,
     UPDATE_CALL_STATE,
 } = require('./queries');
 
@@ -50,6 +51,11 @@ async function getDispatchContext(queueIds) {
     return res.rows;
 }
 
+async function getDispatchContextByCandidateId(candidateId) {
+    const res = await query(FETCH_CANDIDATE_DISPATCH_CONTEXT, [candidateId]);
+    return res.rowCount ? res.rows[0] : null;
+}
+
 async function setCallState(queueId, state) {
     await query(UPDATE_CALL_STATE, [queueId, state]);
 }
@@ -58,6 +64,6 @@ module.exports = {
     countActiveCalls,
     lockNextPendingCalls,
     getDispatchContext,
+    getDispatchContextByCandidateId,
     setCallState,
 };
-

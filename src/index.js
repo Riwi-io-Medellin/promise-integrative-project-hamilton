@@ -3,12 +3,14 @@ const express = require('express');
 const { startScheduler } = require('./schedulers');
 const { startDispatcher } = require('./schedulers/callDispatcher');
 const { buildPostCallRouter } = require('./postcall/router');
+const { buildDirectCallRouter } = require('./directcall/router');
 
 async function main() {
     try {
         const app = express();
         app.use(express.json({ limit: '1mb' }));
         app.use('/webhooks', buildPostCallRouter());
+        app.use('/calls', buildDirectCallRouter());
 
         startScheduler({ limit: 1000, scheduleStartup: true });
         startDispatcher({
