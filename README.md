@@ -268,6 +268,8 @@ Notas:
 
 - `PENDIENTE`
     - Candidato sigue `PENDIENTE`.
+    - Cambia `franja_actual` al siguiente turno para reintento.
+    - Incrementa `intentos_llamada`.
     - Cola `COMPLETADA`.
 
 - `NO_INTERESADO`

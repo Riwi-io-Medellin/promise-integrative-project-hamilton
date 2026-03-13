@@ -18,10 +18,6 @@ function normalizeText(value, fallback = '') {
 }
 
 function buildListaHorarios(row, events) {
-    if (row.nota_horario && String(row.nota_horario).trim()) {
-        return row.nota_horario.trim();
-    }
-
     const options = events.slice(0, 3).map((event) => event.fecha_legible);
     if (options.length === 1) {
         return options[0];
@@ -31,6 +27,10 @@ function buildListaHorarios(row, events) {
     }
     if (options.length === 3) {
         return `${options[0]} o ${options[1]}, o tambien ${options[2]}`;
+    }
+
+    if (row.nota_horario && String(row.nota_horario).trim()) {
+        return row.nota_horario.trim();
     }
 
     const preferred = formatPreferredTime(row.hora_preferida_llamada);

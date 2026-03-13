@@ -10,7 +10,7 @@ const RESULT_RULES = {
         resultadoLlamadaCodigo: 'COMPLETADO',
         estadoGestionCodigo: 'PENDIENTE',
         queueState: 'COMPLETADA',
-        updateMode: 'ESTADO',
+        updateMode: 'RETRY_SHIFT',
         requiresEvent: false,
     },
     NO_INTERESADO: {
@@ -46,4 +46,3 @@ module.exports = {
     RESULT_RULES,
     getNextFranja,
 };
-

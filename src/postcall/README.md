@@ -32,7 +32,8 @@ Payload esperado:
   - Cierra cola en `COMPLETADA`.
 - `PENDIENTE`:
   - Mantiene candidato en estado `PENDIENTE`.
+  - Cambia `franja_actual` al siguiente turno para reintento.
+  - Incrementa `intentos_llamada`.
   - Cierra cola en `COMPLETADA`.
 
 Siempre inserta registro en `llamadas` y ninguna llamada queda en `EN_CURSO` cuando entra el cierre.
-
