@@ -21,6 +21,7 @@ Payload esperado:
 - `AGENDADO`:
   - Reserva cupo en `eventos`.
   - Si se llena, marca evento `COMPLETO`.
+  - Si llega webhook duplicado para el mismo candidato y mismo `evento_id`, no vuelve a sumar cupo.
   - Actualiza candidato a estado de gestion `AGENDADO`.
   - Cierra cola en `COMPLETADA`.
 - `NO_INTERESADO` y `NUMERO_INCORRECTO`:

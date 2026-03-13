@@ -8,6 +8,7 @@ const {
     CLOSE_QUEUE_STATE,
     FIND_ESTADO_GESTION_ID,
     FIND_RESULTADO_LLAMADA_ID,
+    FIND_CALL_BY_CONVERSATION_ID,
     RESERVE_EVENT_SLOT,
     UPDATE_CANDIDATE_AGENDADO,
     UPDATE_CANDIDATE_ESTADO,
@@ -39,6 +40,23 @@ async function processPostCallResult(payload) {
     try {
         await client.query('BEGIN');
 
+        if (data.conversationId) {
+            const existingConversationCallRes = await client.query(FIND_CALL_BY_CONVERSATION_ID, [data.conversationId]);
+            if (existingConversationCallRes.rowCount) {
+                const existingCall = existingConversationCallRes.rows[0];
+                await client.query('COMMIT');
+                return {
+                    ok: true,
+                    idempotent: true,
+                    candidato_id: existingCall.candidato_id,
+                    resultado: data.resultado,
+                    llamada_id: existingCall.id,
+                    cola_id: null,
+                    evento_id: existingCall.evento_asignado_id || null,
+                };
+            }
+        }
+
         const candidateRes = await client.query(FIND_CANDIDATE_FOR_UPDATE, [data.candidatoId]);
         if (!candidateRes.rowCount) {
             throw new Error(`No existe candidato ${data.candidatoId}`);
@@ -50,11 +68,24 @@ async function processPostCallResult(payload) {
 
         let reservedEventId = null;
         if (rule.requiresEvent) {
-            const reserveRes = await client.query(RESERVE_EVENT_SLOT, [data.eventoId]);
-            if (!reserveRes.rowCount) {
-                throw new Error(`No fue posible reservar cupo para evento ${data.eventoId}`);
+            const alreadyAssignedSameEvent = Number(candidate.evento_asignado_id) === Number(data.eventoId);
+            const alreadyAssignedAnotherEvent = candidate.evento_asignado_id != null && !alreadyAssignedSameEvent;
+
+            if (alreadyAssignedAnotherEvent) {
+                throw new Error(
+                    `El candidato ${data.candidatoId} ya tiene un evento asignado (${candidate.evento_asignado_id}) y no se reservara otro.`
+                );
             }
-            reservedEventId = reserveRes.rows[0].id;
+
+            if (alreadyAssignedSameEvent) {
+                reservedEventId = Number(data.eventoId);
+            } else {
+                const reserveRes = await client.query(RESERVE_EVENT_SLOT, [data.eventoId]);
+                if (!reserveRes.rowCount) {
+                    throw new Error(`No fue posible reservar cupo para evento ${data.eventoId}`);
+                }
+                reservedEventId = reserveRes.rows[0].id;
+            }
         }
 
         if (rule.updateMode === 'AGENDADO') {
@@ -123,4 +154,3 @@ async function processPostCallResult(payload) {
 module.exports = {
     processPostCallResult,
 };
-

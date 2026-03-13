@@ -71,6 +71,7 @@ El sistema ejecuta este ciclo:
 
 - `src/schedulers/callDispatcher.js`
     - Loop cada `DISPATCH_INTERVAL_MS`.
+    - Recupera `EN_CURSO` atascadas por timeout (sin webhook) aplicando cierre automatico como `BUZON_VOZ`.
     - Calcula cupos libres: `maxConcurrent - activas`.
     - Toma pendientes con lock transaccional.
     - Cambia estado a `EN_CURSO`.
@@ -149,7 +150,11 @@ El sistema ejecuta este ciclo:
 6. Si falla creacion de llamada:
     - error 4xx -> `CANCELADA`
     - otros errores -> vuelve a `PENDIENTE`.
-7. Cuando entra webhook final:
+7. Si una llamada queda en `EN_CURSO` sin webhook final por timeout:
+    - watchdog la auto-cierra como `BUZON_VOZ`,
+    - rota franja al siguiente turno e incrementa intentos,
+    - libera el cupo en cola para que no se estanque el dispatcher.
+8. Cuando entra webhook final:
     - aplica regla segun resultado,
     - nunca deja la llamada en `EN_CURSO`, la cierra,
     - persiste trazabilidad en `llamadas`.
@@ -215,6 +220,7 @@ Body que usa el sistema:
 ```
 
 Notas clave:
+- `ciudad` corresponde a la **sede de interes** del candidato (ej. Medellin/Barranquilla).
 - `eventos_disponibles` viaja como **string JSON** (no array directo).
 - Header de auth: usar **solo** `xi-api-key`.
 
@@ -319,6 +325,9 @@ Definir en `.env`:
     - `QUEUE_LOCK_KEY`
     - `DISPATCH_MAX_CONCURRENT` (default 4)
     - `DISPATCH_INTERVAL_MS` (default 5000)
+    - `DISPATCH_STALE_RECOVERY_ENABLED` (default `true`, usar `false` para desactivar watchdog)
+    - `DISPATCH_STALE_TIMEOUT_MINUTES` (default 20)
+    - `DISPATCH_STALE_BATCH_SIZE` (default 20)
 
 ## 8) Ejecucion local
 

@@ -3,10 +3,12 @@ const {
     countActiveCalls,
     lockNextPendingCalls,
     getDispatchContext,
+    lockStaleInProgressCalls,
     setCallState,
 } = require('./dispatcher/repository');
 const { buildElevenLabsRequest } = require('./dispatcher/payloadBuilder');
 const { createOutboundCall } = require('./dispatcher/elevenLabsClient');
+const { processPostCallResult } = require('../postcall/service');
 
 const DEFAULT_MAX_CONCURRENT = 4;
 const DEFAULT_INTERVAL_MS = 5000;
@@ -38,11 +40,38 @@ async function processQueueRow(row) {
     }
 }
 
+async function recoverStaleInProgressCalls() {
+    if (!env.DISPATCH_STALE_RECOVERY_ENABLED) return;
+
+    const staleRows = await lockStaleInProgressCalls(
+        env.DISPATCH_STALE_TIMEOUT_MINUTES,
+        env.DISPATCH_STALE_BATCH_SIZE
+    );
+
+    if (!staleRows.length) return;
+
+    for (const row of staleRows) {
+        try {
+            await processPostCallResult({
+                resultado: 'BUZON_VOZ',
+                candidato_id: row.candidato_id,
+                nota: `Auto-cierre por timeout: sin webhook final en ${env.DISPATCH_STALE_TIMEOUT_MINUTES} minutos.`,
+                conversation_id: `timeout-${row.id}-${Date.now()}`,
+            });
+            console.warn(`Dispatcher watchdog: cola ${row.id} auto-cerrada por timeout.`);
+        } catch (err) {
+            console.error(`Dispatcher watchdog: fallo auto-cierre de cola ${row.id}:`, err.message);
+        }
+    }
+}
+
 async function dispatchLoop(maxConcurrent) {
     if (running) return;
     running = true;
 
     try {
+        await recoverStaleInProgressCalls();
+
         const active = await countActiveCalls();
         const slots = Math.max(0, maxConcurrent - active);
         if (slots === 0) return;

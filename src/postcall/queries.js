@@ -17,10 +17,10 @@ module.exports = {
     CLOSE_QUEUE_STATE: loadSql('close_queue_state.sql'),
     FIND_ESTADO_GESTION_ID: loadSql('find_estado_gestion_id.sql'),
     FIND_RESULTADO_LLAMADA_ID: loadSql('find_resultado_llamada_id.sql'),
+    FIND_CALL_BY_CONVERSATION_ID: loadSql('find_call_by_conversation_id.sql'),
     RESERVE_EVENT_SLOT: loadSql('reserve_event_slot.sql'),
     UPDATE_CANDIDATE_AGENDADO: loadSql('update_candidate_agendado.sql'),
     UPDATE_CANDIDATE_ESTADO: loadSql('update_candidate_estado.sql'),
     UPDATE_CANDIDATE_RETRY: loadSql('update_candidate_retry.sql'),
     INSERT_LLAMADA: loadSql('insert_llamada.sql'),
 };
-

@@ -2,6 +2,7 @@ const env = require('../config/env');
 const {
     countActiveCalls,
     getDispatchContextByCandidateId,
+    incrementCandidateAttempts,
 } = require('../schedulers/dispatcher/repository');
 const { buildElevenLabsRequest } = require('../schedulers/dispatcher/payloadBuilder');
 const { createOutboundCall } = require('../schedulers/dispatcher/elevenLabsClient');
@@ -46,6 +47,9 @@ async function triggerDirectCall(payload) {
         throw buildHttpError(400, 'El candidato no tiene telefono valido para llamada saliente');
     }
 
+    await incrementCandidateAttempts([candidatoId]);
+    row.intentos = Number(row.intentos || 0) + 1;
+
     const requestBody = buildElevenLabsRequest(row, env);
     const providerResponse = await createOutboundCall(requestBody);
 
@@ -61,4 +65,3 @@ async function triggerDirectCall(payload) {
 module.exports = {
     triggerDirectCall,
 };
-

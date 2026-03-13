@@ -4,7 +4,7 @@ SELECT
     c.nombre,
     c.apellido,
     COALESCE(ml.descripcion, c.fase_actual) AS motivo,
-    m.nombre AS ciudad,
+    s.nombre AS ciudad,
     c.intentos_llamada AS intentos,
     c.nota_horario,
     h.descripcion AS horario_descripcion,
@@ -13,7 +13,7 @@ SELECT
     COALESCE(events.eventos_disponibles, '[]'::json) AS eventos_disponibles
 FROM candidatos c
 LEFT JOIN motivos_llamada ml ON ml.id = c.motivo_llamada_id
-LEFT JOIN municipios m ON m.id = c.municipio_id
+LEFT JOIN sedes s ON s.id = c.sede_interes_id
 LEFT JOIN horarios h ON h.id = c.horario_id
 LEFT JOIN LATERAL (
     SELECT l.resumen
@@ -44,4 +44,3 @@ LEFT JOIN LATERAL (
     ) ev
 ) AS events ON TRUE
 WHERE c.id = $1::uuid;
-
