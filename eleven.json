@@ -1,0 +1,118 @@
+{
+  "type": "webhook",
+  "name": "agendar_cita",
+  "description": "Guarda el resultado de la llamada, ya sea una cita confirmada, una reprogramación o si no hubo acuerdo. Se debe llamar al finalizar la negociación.",
+  "disable_interruptions": true,
+  "force_pre_tool_speech": "auto",
+  "tool_call_sound": "typing",
+  "tool_call_sound_behavior": "auto",
+  "tool_error_handling_mode": "auto",
+  "execution_mode": "immediate",
+  "api_schema": {
+    "url": "https://n8nselfhosted-5qrl.onrender.com/webhook-test/47736c90-4797-4027-8fc3-d80739fb5efd",
+    "method": "POST",
+    "path_params_schema": [],
+    "query_params_schema": [],
+    "request_body_schema": {
+      "id": "body",
+      "type": "object",
+      "description": "Objeto con los detalles de la cita acordada (resultado, día, hora, nota).",
+      "properties": [
+        {
+          "id": "resultado",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "El estado final: AGENDADO, PENDIENTE, NO_INTERESADO, NUMERO_INCORRECTO, BUZON_VOZ.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": [
+            "AGENDADO",
+            "PENDIENTE",
+            "NO_INTERESADO",
+            "NUMERO_INCORRECTO",
+            "BUZON_VOZ"
+          ],
+          "is_system_provided": false,
+          "required": true
+        },
+        {
+          "id": "dia",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "El día de la semana acordado (ej: 'Lunes', 'Martes'). Null si no se agendó.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "hora",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "La hora exacta acordada (ej: '4:30 PM'). Null si no se agendó.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "nota",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Detalles extra relevantes (ej: 'Prefiere que lo llamen después de las 5pm' o 'Confirmó asistencia').",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "fecha_seleccionada_legible",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "Fecha y hora completas que eligió el candidato, exactamente como en eventos_disponibles.fecha_legible (ej: 'miércoles 18 de febrero a las 7:00 PM)",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "candidato_id",
+          "type": "string",
+          "value_type": "dynamic_variable",
+          "description": "",
+          "dynamic_variable": "id",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": false
+        },
+        {
+          "id": "evento_id",
+          "type": "string",
+          "value_type": "llm_prompt",
+          "description": "ID del evento seleccionado, tomado del objeto de eventos_disponibles que coincida con la fecha/hora elegida. Por ejemplo, si el usuario elije miercoles 18 de febrero a las 7:00, y ese evento tiene un \"0bfee397-b849-4a76-886d-a2c37aa44f8b\", me debes de enviar \"0bfee397-b849-4a76-886d-a2c37aa44f8b\".",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "enum": null,
+          "is_system_provided": false,
+          "required": true
+        }
+      ],
+      "required": false,
+      "value_type": "llm_prompt"
+    },
+    "request_headers": [],
+    "auth_connection": null
+  },
+  "assignments": [],
+  "response_timeout_secs": 20,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {
+      "id": "e588da70-e165-4745-a97a-5c31df751fed"
+    }
+  }
+}

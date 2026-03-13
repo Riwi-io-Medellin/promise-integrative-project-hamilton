@@ -1,3 +1,4 @@
+
 CREATE TABLE public.candidato_ideal (
   id integer NOT NULL DEFAULT nextval('candidato_ideal_id_seq'::regclass),
   candidato_id uuid NOT NULL UNIQUE,

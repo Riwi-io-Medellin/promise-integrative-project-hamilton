@@ -20,4 +20,19 @@ module.exports = {
     ELEVENLABS_PHONE_NUMBER_ID: process.env.ELEVENLABS_PHONE_NUMBER_ID,
     PORT: process.env.PORT || 3000,
     ELEVENLABS_API_URL: process.env.ELEVENLABS_API_URL || 'https://api.elevenlabs.io/v1/convai/twilio/outbound-call',
+
+    SCHED_CRON_MANANA: process.env.SCHED_CRON_MANANA || '0 7 * * *',
+    SCHED_CRON_TARDE: process.env.SCHED_CRON_TARDE || '0 13 * * *',
+    SCHED_CRON_NOCHE: process.env.SCHED_CRON_NOCHE || '0 19 * * *',
+
+    SCHED_CRON_MORNING: process.env.SCHED_CRON_MORNING || process.env.SCHED_CRON_MANANA || '0 7 * * *',
+    SCHED_CRON_AFTERNOON: process.env.SCHED_CRON_AFTERNOON || process.env.SCHED_CRON_TARDE || '0 13 * * *',
+    SCHED_CRON_NIGHT: process.env.SCHED_CRON_NIGHT || process.env.SCHED_CRON_NOCHE || '0 19 * * *',
+    QUEUE_LOCK_KEY: process.env.QUEUE_LOCK_KEY ? parseInt(process.env.QUEUE_LOCK_KEY, 10) : 987654321,
+
+    STARTUP_FORCE_MOVE: (process.env.STARTUP_FORCE_MOVE === 'true'),
+    STARTUP_FORCE_MOVE_LIMIT: process.env.STARTUP_FORCE_MOVE_LIMIT ? parseInt(process.env.STARTUP_FORCE_MOVE_LIMIT, 10) : 1000,
+    STARTUP_FORCE_FRANJA: process.env.STARTUP_FORCE_FRANJA || 'noche',
+    DISPATCH_MAX_CONCURRENT: process.env.DISPATCH_MAX_CONCURRENT ? parseInt(process.env.DISPATCH_MAX_CONCURRENT, 10) : 4,
+    DISPATCH_INTERVAL_MS: process.env.DISPATCH_INTERVAL_MS ? parseInt(process.env.DISPATCH_INTERVAL_MS, 10) : 5000,
 };
