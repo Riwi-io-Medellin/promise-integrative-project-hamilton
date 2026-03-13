@@ -1,0 +1,10 @@
+.analitica-container { padding: 32px; background: #F8FAFC; min-height: 100vh; }
+.card-stat { background: white; padding: 24px; rounded-2xl: 1rem; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+
+/* Animación de las barras */
+.bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 160px; gap: 8px; margin-top: 24px; border-bottom: 2px solid #F1F5F9; }
+.bar-item { width: 100%; background: #C7D2FE; border-top-left-radius: 8px; border-top-right-radius: 8px; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s; position: relative; cursor: pointer; height: 0; }
+.bar-item:hover { background: #6366F1; }
+.bar-item:hover .bar-tooltip { opacity: 1; visibility: visible; }
+
+.bar-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1E293B; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; opacity: 0; visibility: hidden; transition: 0.2s; margin-bottom: 8px; white-space: nowrap; }

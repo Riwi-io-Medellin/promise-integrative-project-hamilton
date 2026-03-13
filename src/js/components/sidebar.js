@@ -1,4 +1,3 @@
-
 export const Sidebar = {
     render: () => {
         const menuLateral = document.getElementById('menu-lateral');
@@ -63,10 +62,5 @@ export const Sidebar = {
                 </div>
             </nav>
         `;
-
-        // Muy importante: volver a generar los iconos de Lucide
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
     }
 };

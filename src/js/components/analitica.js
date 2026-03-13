@@ -1,21 +1,7 @@
-export const analiticaView = {
+export const Analitica = {
     title: 'Analítica de RiwiCalls',
-
-    // 1. ESTRUCTURA (HTML y CSS)
+    cssPath: 'src/css/analitica.css',
     template: `
-    <style>
-        .analitica-container { padding: 32px; background: #F8FAFC; min-height: 100vh; }
-        .card-stat { background: white; padding: 24px; rounded-2xl: 1rem; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
-        
-        /* Animación de las barras */
-        .bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 160px; gap: 8px; margin-top: 24px; border-bottom: 2px solid #F1F5F9; }
-        .bar-item { width: 100%; background: #C7D2FE; border-top-left-radius: 8px; border-top-right-radius: 8px; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s; position: relative; cursor: pointer; }
-        .bar-item:hover { background: #6366F1; }
-        .bar-item:hover .bar-tooltip { opacity: 1; visibility: visible; }
-        
-        .bar-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1E293B; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; opacity: 0; visibility: hidden; transition: 0.2s; margin-bottom: 8px; white-space: nowrap; }
-    </style>
-
     <div class="analitica-container animate-in">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="card-stat">
@@ -45,8 +31,7 @@ export const analiticaView = {
 
         <div class="card-stat col-span-2">
             <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Actividad de Llamadas (Últimos 5 días)</h4>
-            <div class="bar-container" id="chart-activity">
-                </div>
+            <div class="bar-container" id="chart-activity"></div>
             <div class="flex justify-around mt-4 text-[10px] font-bold text-slate-400 uppercase">
                 <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Hoy</span>
             </div>
@@ -54,11 +39,10 @@ export const analiticaView = {
     </div>
     `,
 
-    // 2. LÓGICA (Animaciones y Datos)
-    logic: function() {
+    logic: () => {
         const chartContainer = document.getElementById('chart-activity');
-        
-        // Datos de ejemplo para las barras (alturas en %)
+        if (!chartContainer) return;
+
         const stats = [
             { day: 'Lun', value: 45, label: '45 llamadas' },
             { day: 'Mar', value: 65, label: '65 llamadas' },
@@ -67,26 +51,35 @@ export const analiticaView = {
             { day: 'Hoy', value: 95, label: '95 llamadas' }
         ];
 
-        // Inyectamos las barras con altura 0 primero
-        chartContainer.innerHTML = stats.map((s, index) => `
-            <div class="bar-item" id="bar-${index}" style="height: 0%">
-                <div class="bar-tooltip">${s.label}</div>
-            </div>
-        `).join('');
+        // Render barras
+        chartContainer.innerHTML = '';
+        // asegurar que el contenedor use flex
+        chartContainer.style.display = 'flex';
+        chartContainer.style.alignItems = 'flex-end';
+        chartContainer.style.gap = '8px';
 
-        // Disparamos la animación después de un breve delay
-        setTimeout(() => {
-            stats.forEach((s, index) => {
-                const bar = document.getElementById(`bar-${index}`);
-                if (bar) {
-                    bar.style.height = `${s.value}%`;
-                    // Cambiamos el color de la barra más alta para resaltarla
-                    if (s.value > 90) bar.style.background = '#10B981'; 
-                }
-            });
-        }, 100);
+        stats.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'bar-item';
+            div.style.height = '0%';
+            div.style.flex = '1';
+            div.style.minWidth = '20px';
 
-        // Re-activar iconos
-        if (window.lucide) lucide.createIcons();
+            const tooltip = document.createElement('span');
+            tooltip.className = 'bar-tooltip';
+            tooltip.textContent = s.label;
+
+            div.appendChild(tooltip);
+            chartContainer.appendChild(div);
+
+            // Animar altura
+            setTimeout(() => {
+                div.style.height = s.value + '%';
+                if (s.value > 90) div.style.background = '#10B981';
+            }, 50);
+
+            // Mostrar tooltip al click
+            div.addEventListener('click', () => alert(s.label));
+        });
     }
 };

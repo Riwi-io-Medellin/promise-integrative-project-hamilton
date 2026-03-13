@@ -1,0 +1,13 @@
+// backup of previous JS view in case you need to restore
+import { initDashboard } from '../logic/dashboard.js';
+
+export const dashboardView = {
+    title: 'Dashboard RiwiCalls',
+    cssPath: 'src/css/dashboard.css',
+
+    template: `...`,
+
+    logic: function() {
+        if (typeof initDashboard === 'function') initDashboard();
+    }
+};

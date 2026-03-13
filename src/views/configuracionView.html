@@ -1,0 +1,55 @@
+<div class="p-8 space-y-6 max-w-2xl animate-in">
+    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+            <i data-lucide="webhook" class="w-5 h-5 text-indigo-500"></i>
+            <h3 class="font-bold text-slate-800">Webhook n8n</h3>
+        </div>
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">URL del Webhook de Automatización</label>
+            <div class="flex gap-2">
+                <input type="text" id="webhook-url" class="flex-1 p-3 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all" value="https://n8n.riwi.io/webhook/riwicalls-prod">
+                <button id="btn-save-webhook" class="bg-slate-900 text-white px-6 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-600 transition-all shadow-sm">
+                    <i data-lucide="save" class="w-4 h-4 text-emerald-400"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+            <i data-lucide="settings-2" class="w-5 h-5 text-indigo-500"></i>
+            <h3 class="font-bold text-slate-800">Parámetros del Sistema</h3>
+        </div>
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intervalo actualización (segundos)</label>
+            <div class="flex gap-2">
+                <input type="number" id="system-interval" value="30" class="flex-1 p-3 rounded-xl border border-slate-100 bg-slate-50 text-sm outline-none">
+                <button id="btn-save-system" class="bg-slate-900 text-white px-6 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-600 transition-all shadow-sm">
+                    <i data-lucide="save" class="w-4 h-4 text-emerald-400"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="database" class="w-5 h-5 text-indigo-500"></i>
+            <h3 class="font-bold text-slate-800">Estado de Conexión</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4 italic">La base de datos (PostgreSQL/Supabase) está sincronizada y activa.</p>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="bg-slate-50 p-3 rounded-xl text-center border border-slate-100">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 mx-auto mb-2 animate-pulse"></div>
+                <p class="text-[10px] font-mono font-bold text-slate-500 uppercase">candidatos</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-xl text-center border border-slate-100">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 mx-auto mb-2 animate-pulse"></div>
+                <p class="text-[10px] font-mono font-bold text-slate-500 uppercase">llamadas</p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-xl text-center border border-slate-100">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 mx-auto mb-2 animate-pulse"></div>
+                <p class="text-[10px] font-mono font-bold text-slate-500 uppercase">eventos</p>
+            </div>
+        </div>
+    </div>
+</div>

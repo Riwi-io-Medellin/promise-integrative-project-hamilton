@@ -1,0 +1,49 @@
+<style>
+    .analitica-container { padding: 32px; background: #F8FAFC; min-height: 100vh; }
+    .card-stat { background: white; padding: 24px; rounded-2xl: 1rem; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+    
+    /* Animación de las barras */
+    .bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 160px; gap: 8px; margin-top: 24px; border-bottom: 2px solid #F1F5F9; }
+    .bar-item { width: 100%; background: #C7D2FE; border-top-left-radius: 8px; border-top-right-radius: 8px; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s; position: relative; cursor: pointer; }
+    .bar-item:hover { background: #6366F1; }
+    .bar-item:hover .bar-tooltip { opacity: 1; visibility: visible; }
+    
+    .bar-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1E293B; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; opacity: 0; visibility: hidden; transition: 0.2s; margin-bottom: 8px; white-space: nowrap; }
+</style>
+
+<div class="analitica-container animate-in">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="card-stat">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Efectividad de IA</h4>
+                <i data-lucide="trending-up" class="text-emerald-500 w-5 h-5"></i>
+            </div>
+            <div class="flex items-end gap-2">
+                <span class="text-5xl font-black text-slate-800">78%</span>
+                <span class="text-emerald-500 font-bold mb-1 text-sm">↑ 5%</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2">Candidatos interesados tras llamada de RiwiCalls</p>
+        </div>
+
+        <div class="card-stat">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tiempo Ahorrado</h4>
+                <i data-lucide="clock" class="text-indigo-500 w-5 h-5"></i>
+            </div>
+            <div class="flex items-end gap-2">
+                <span class="text-5xl font-black text-slate-800">12h</span>
+                <span class="text-slate-400 font-bold mb-1 text-sm">Esta semana</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-2">Esfuerzo humano optimizado por la automatización</p>
+        </div>
+    </div>
+
+    <div class="card-stat col-span-2">
+        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Actividad de Llamadas (Últimos 5 días)</h4>
+        <div class="bar-container" id="chart-activity">
+            </div>
+        <div class="flex justify-around mt-4 text-[10px] font-bold text-slate-400 uppercase">
+            <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Hoy</span>
+        </div>
+    </div>
+</div>

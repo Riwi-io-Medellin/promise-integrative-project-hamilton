@@ -1,40 +1,39 @@
 import { App } from '../app.js';
-import { dashboardView } from '../views/dashboardView.js';
-import { candidatosView } from '../views/candidatosView.js';
-import { analiticaView } from '../views/analiticaView.js';
-import { configuracionView } from '../views/configuracionView.js';
-import { eventosView } from '../views/eventosView.js';
-import { llamadasView } from '../views/llamadasView.js';
-import { reportesView } from '../views/reportesView.js';
-import { seguimientoView } from '../views/seguimientoView.js';
-import { notFoundView } from '../views/notFoundView.js' 
+import { Analitica } from '../components/analitica.js';
+import { Seguimiento } from '../components/seguimiento.js';
+import { dashboardView } from '../loaders/dashboardView.js';
+import { candidatosView } from '../loaders/candidatosView.js';
+import { configuracionView } from '../loaders/configuracionView.js';
+import { eventosView } from '../loaders/eventosView.js';
+import { llamadasView } from '../loaders/llamadasView.js';
+import { reportesView } from '../loaders/reportesView.js';
 
 const routes = {
     '#/dashboard': dashboardView,
     '#/candidatos': candidatosView,
-    '#/analitica': analiticaView,
+    '#/analitica': Analitica,
     '#/configuracion': configuracionView,
     '#/eventos': eventosView,
     '#/llamadas': llamadasView,
     '#/reportes': reportesView,
-    '#/seguimiento': seguimientoView
+    '#/seguimiento': Seguimiento
 };
 
 export const initRouter = () => {
-    const handleRoute = () => {
-        // Si no hay hash, por defecto vamos al dashboard
+    const handleRoute = async () => {
         const hash = window.location.hash || '#/dashboard';
-        
-        // Buscamos la vista, si no existe usamos el notFoundView
-        const view = routes[hash] || notFoundView;
+        let view = routes[hash] || { title: '404', template: '<div>Not Found</div>' };
 
-        // El motor App se encarga de pintar y ejecutar la lógica
+        // Soportar vistas que sean funciones async (p.ej. loader que hace fetch de un .html)
+        if (typeof view === 'function') {
+            try { view = await view(); } catch (err) { console.error('Error cargando vista', err); view = { title: '500', template: '<div>Error</div>' }; }
+        }
+
         App.render(view);
     };
 
-    // Escuchamos los cambios de navegación
     window.addEventListener('hashchange', handleRoute);
-    
-    // Ejecutamos una vez al cargar la página
     window.addEventListener('load', handleRoute);
 };
+
+export default routes;

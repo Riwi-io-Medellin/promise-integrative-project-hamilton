@@ -1,0 +1,85 @@
+<style>
+    .llamadas-wrapper { padding: 32px; background: #F8FAFC; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    .header-llamadas { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .titulo-llamadas { font-size: 24px; font-weight: 800; color: #1E293B; }
+    .action-bar { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; flex-wrap: nowrap; }
+    
+    .btn-nueva-llamada { 
+        background: #6366F1; color: white; padding: 10px 20px; border-radius: 12px; border: none; 
+        font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer;
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-n8n { background: #6EE7B7; color: #15803D; padding: 10px 20px; border-radius: 12px; border: none; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    
+    .table-container { background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #F8FAFC; padding: 12px 20px; text-align: left; font-size: 11px; color: #64748B; text-transform: uppercase; font-weight: 800; }
+    td { padding: 16px 20px; border-bottom: 1px solid #F1F5F9; }
+
+    .modal-overlay { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); z-index: 9999; display: none; justify-content: center; align-items: center; 
+        backdrop-filter: blur(4px);
+    }
+</style>
+
+<div class="llamadas-wrapper animate-in">
+    <div class="header-llamadas">
+        <h1 class="titulo-llamadas">Gestión de Llamadas</h1>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn-nueva-llamada" id="btn-nueva-llamada">
+            <i data-lucide="plus" class="w-4 h-4"></i> Nueva Llamada
+        </button>
+
+        <button class="btn-n8n" id="btn-n8n-flow">
+            <i data-lucide="share-2" class="w-4 h-4"></i> Iniciar flujo con n8n
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Candidato / Motivo</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="lista-llamadas"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modalNuevaLlamada" class="modal-overlay">
+    <div style="background: white; padding: 30px; border-radius: 24px; width: 400px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <h2 style="font-weight: 800; font-size: 20px;">Nueva Llamada</h2>
+            <button id="cerrarModal" style="border:none; background:none; cursor:pointer; font-size: 20px;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:5px;">Nombre</label>
+            <input type="text" id="nuevoNombre" style="width:100%; padding:10px; border-radius:10px; border:1px solid #E2E8F0;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:5px;">Teléfono</label>
+            <input type="text" id="nuevoTel" style="width:100%; padding:10px; border-radius:10px; border:1px solid #E2E8F0;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:600; font-size:12px; margin-bottom:5px;">Motivo</label>
+            <textarea id="detalleMotivo" rows="3" style="width:100%; padding:10px; border-radius:10px; border:1px solid #E2E8F0;"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content: flex-end; gap:10px;">
+            <button id="btnCancelar" style="padding:10px 20px; border:none; background:#F1F5F9; border-radius:10px; cursor:pointer;">Cancelar</button>
+            <button id="btnGuardarLlamada" style="padding:10px 20px; border:none; background:#6366F1; color:white; border-radius:10px; cursor:pointer;">Guardar</button>
+        </div>
+    </div>
+</div>

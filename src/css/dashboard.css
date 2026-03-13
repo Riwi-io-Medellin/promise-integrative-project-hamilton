@@ -1,0 +1,9 @@
+.dashboard-container { background: #F8FAFC; padding: 25px; font-family: 'Inter', sans-serif; }
+.card { background: white; border-radius: 16px; border: 1px solid #E2E8F0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.metric-icon { color: #6366F1; width: 20px; height: 20px; }
+.custom-tooltip {
+    position: fixed; pointer-events: none; background: rgba(30, 41, 59, 0.95);
+    color: white; padding: 8px 12px; border-radius: 8px; font-size: 11px;
+    font-weight: 600; z-index: 10000; display: none; backdrop-filter: blur(4px);
+}
+.tooltip-color-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }

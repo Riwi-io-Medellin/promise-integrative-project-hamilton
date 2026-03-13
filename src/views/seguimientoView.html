@@ -1,0 +1,31 @@
+<style>
+    .seguimiento-wrapper { padding: 32px; background: #F8FAFC; min-height: 100vh; }
+    
+    /* Pipeline Summary */
+    .pipeline-card { background: white; padding: 24px; border-radius: 20px; border: 1px solid #E2E8F0; margin-bottom: 32px; }
+    .pipeline-steps { display: flex; align-items: center; gap: 12px; overflow-x: auto; padding-bottom: 10px; }
+    .step-box { background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 12px 20px; text-align: center; min-width: 90px; }
+    .step-num { display: block; font-size: 22px; font-weight: 800; color: #6366F1; }
+    .step-label { font-size: 10px; color: #94A3B8; font-weight: 700; text-transform: uppercase; }
+
+    /* Kanban Layout */
+    .kanban-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .kanban-col-title { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 13px; font-weight: 700; color: #1E293B; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; }
+    .col-count { background: #E2E8F0; color: #64748B; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+
+    /* Tarjetas */
+    .candidate-card { background: white; border-radius: 12px; padding: 14px; border: 1px solid #E2E8F0; margin-bottom: 12px; transition: transform 0.2s; cursor: grab; }
+    .candidate-card:hover { transform: scale(1.02); border-color: #6366F1; }
+    .can-name { font-size: 13px; font-weight: 700; color: #1E293B; display: block; }
+    .can-id { font-size: 11px; color: #94A3B8; }
+</style>
+
+<div class="seguimiento-wrapper animate-in">
+    <div class="pipeline-card">
+        <div class="pipeline-steps" id="summary-steps">
+            </div>
+    </div>
+
+    <div class="kanban-container" id="kanban-board">
+        </div>
+</div>

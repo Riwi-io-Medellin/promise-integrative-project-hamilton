@@ -1,0 +1,110 @@
+<div class="dashboard-container">
+    <div class="grid grid-cols-4 gap-4 mb-6" id="metricas-container"></div>
+
+    <div id="dynamic-charts-container" class="grid grid-cols-12 gap-6 mb-6">
+        <div class="card col-span-5 flex flex-col items-center">
+            <h4 class="text-slate-500 text-[10px] font-black uppercase tracking-widest self-start mb-10">Distribución por Género</h4>
+            <div class="relative w-40 h-40 group chart-hover-zone" data-tip-hombres="5 Hombres (50%)" data-tip-mujeres="5 Mujeres (50%)">
+                <div class="w-full h-full rounded-full cursor-pointer transition-transform duration-300 hover:scale-105" 
+                    style="background: conic-gradient(#6366F1 0% 50%, #71C6A0 50% 100%); 
+                        mask-image: radial-gradient(transparent 45%, black 46%); 
+                        -webkit-mask-image: radial-gradient(transparent 45%, black 46%);">
+                </div>
+                <div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-weight: 900; font-size: 15px; color: #6366F1;">5</span>
+                    <div style="width: 1.5px; height: 15px; background: #6366F1;"></div>
+                </div>
+                <div style="position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                    <div style="width: 1.5px; height: 15px; background: #71C6A0;"></div>
+                    <span style="font-weight: 900; font-size: 15px; color: #71C6A0;">5</span>
+                </div>
+            </div>
+            <div class="mt-12 flex gap-6">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm" style="background: #6366F1;"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Hombres</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm" style="background: #71C6A0;"></div><span class="text-[10px] font-bold text-slate-400 uppercase">Mujeres</span></div>
+            </div>
+        </div>
+
+        <div class="card col-span-7 flex flex-col">
+            <h4 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-6">Rangos de Edad</h4>
+            <div class="flex h-48 w-full">
+                <div class="flex flex-col justify-between text-[10px] font-bold text-slate-400 pr-2 pb-6">
+                    <span>4</span><span>3</span><span>2</span><span>1</span><span>0</span>
+                </div>
+                <div class="flex-1 relative border-l border-b border-slate-200">
+                    <div id="barras-edad-container" class="relative z-10 flex items-end justify-around h-full w-full px-4"></div>
+                </div>
+            </div>
+            <div class="flex justify-around text-[10px] font-bold text-slate-400 uppercase tracking-tighter ml-6 mt-2">
+                <span class="w-20 text-center">17-22</span><span class="w-20 text-center">22-30</span><span class="w-20 text-center">30-35</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="second-row-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px;"></div>
+
+    <div id="third-row-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;"></div>
+
+    <div class="grid grid-cols-12 gap-6 mb-6">
+        <div class="card col-span-6 flex flex-col" id="estado-candidatos-container">
+            <h4 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-6">Estado de Candidatos</h4>
+            <div class="flex flex-1 pr-4">
+                <div class="flex flex-col justify-between text-[10px] font-bold text-slate-400 pr-3 pb-6 text-right w-24">
+                    <span>Filtro CI</span><span>Inscrito</span><span>Llamado</span><span>Interesado</span><span>En proceso</span><span>Admitido</span><span>No interesado</span>
+                </div>
+                <div class="flex-1 relative border-l border-b border-slate-200">
+                    <div class="absolute inset-0 flex justify-between pointer-events-none">
+                        <div class="border-l border-slate-100 border-dashed h-full"></div>
+                        <div class="border-l border-slate-100 border-dashed h-full"></div>
+                        <div class="border-l border-slate-100 border-dashed h-full"></div>
+                        <div class="border-l border-slate-100 border-dashed h-full"></div>
+                    </div>
+                    <div id="barras-estado-candidatos" class="relative z-10 flex flex-col justify-between h-full py-2"></div>
+                </div>
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 ml-[104px] mt-2 pr-4">
+                <span>0</span><span>0.75</span><span>1.5</span><span>2.25</span><span>3</span>
+            </div>
+        </div>
+
+        <div class="card col-span-6 flex flex-col items-center" id="estado-llamadas-container">
+            <h4 class="text-slate-500 text-[10px] font-black uppercase tracking-widest self-start mb-6">Estado de Llamadas</h4>
+            <div class="relative w-48 h-48">
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(#6366F1 0% 40%, transparent 40% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-tip="Pendiente: 3" data-color="#6366F1"></div>
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(transparent 0% 40%, #71C6A0 40% 65%, transparent 65% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-tip="Llamado: 2" data-color="#71C6A0"></div>
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(transparent 0% 65%, #E9C46A 65% 80%, transparent 80% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-tip="No contesta: 1" data-color="#E9C46A"></div>
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(transparent 0% 80%, #D89DED 80% 90%, transparent 90% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-tip="Interesado: 1" data-color="#D89DED"></div>
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(transparent 0% 90%, #E76F51 90% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-tip="No interesado: 0" data-color="#E76F51"></div>
+
+                <div class="absolute inset-0 rounded-full chart-hover-zone cursor-pointer" 
+                    style="background: conic-gradient(#6366F1 0% 40%, #71C6A0 40% 65%, #E9C46A 65% 80%, #D89DED 80% 90%, #E76F51 90% 100%); mask-image: radial-gradient(transparent 58%, black 60%); -webkit-mask-image: radial-gradient(transparent 58%, black 60%);"
+                    data-slices='[{"label":"Pendiente: 3","color":"#6366F1","start":0,"end":40},{"label":"Llamado: 2","color":"#71C6A0","start":40,"end":65},{"label":"No contesta: 1","color":"#E9C46A","start":65,"end":80},{"label":"Interesado: 1","color":"#D89DED","start":80,"end":90},{"label":"No interesado: 0","color":"#E76F51","start":90,"end":100}]'
+                    data-center-tip="7 Total"></div>
+
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm">
+                        <span class="text-slate-400 font-bold text-sm">7 Total</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 grid grid-cols-3 gap-x-4 gap-y-2">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-[#6366F1]"></div><span class="text-[9px] font-bold text-slate-400 uppercase">Pendiente</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-[#71C6A0]"></div><span class="text-[9px] font-bold text-slate-400 uppercase">Llamado</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-[#E9C46A]"></div><span class="text-[9px] font-bold text-slate-400 uppercase">No contesta</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-[#D89DED]"></div><span class="text-[9px] font-bold text-slate-400 uppercase">Interesado</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-sm bg-[#E76F51]"></div><span class="text-[9px] font-bold text-slate-400 uppercase">No interesado</span></div>
+            </div>
+        </div>
+    </div>
+</div>
