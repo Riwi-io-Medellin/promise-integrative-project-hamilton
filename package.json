@@ -13,6 +13,7 @@
     "db:reset": "node scripts/resetear-bd.js",
     "db:reset:full": "node scripts/resetear-bd.js --total",
     "db:fill-queue": "node scripts/llenar-cola.js",
+    "db:reset-candidate": "node scripts/reset-candidato.js",
 
     "// --- CHATBOT OPERATIVO ---": "",
     "bot:trigger-batch": "node scripts/trigger-masivo-chatbot.js",

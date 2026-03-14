@@ -4,11 +4,10 @@ const router = express.Router();
 const { exec } = require('child_process');
 const ngrok = require('ngrok');
 
-// LISTA BLANCA ACTUALIZADA
+// LISTA BLANCA ACTUALIZADA (Sin llenar-cola.js)
 const ALLOWED_SCRIPTS = [
     'test-db-connection.js',
     'resetear-bd.js',
-    'llenar-cola.js',
     'trigger-masivo-chatbot.js',
     'ver-payload-candidato.js',
     'diagnostico-red.js',
@@ -17,8 +16,8 @@ const ALLOWED_SCRIPTS = [
     'test-webhook-escenarios.js',
     'test-webhook-respuesta.js',
     'get-candidatos.js',
-    'check-candidate.js',      // <-- Agregado
-    'reset-candidato.js'       // <-- Nuevo en lugar de reset-maryhug
+    'check-candidate.js',
+    'reset-candidato.js'
 ];
 
 // Endpoint para ejecutar scripts
@@ -29,11 +28,9 @@ router.post('/run-script', (req, res) => {
         return res.status(403).json({ output: `❌ Error: El script '${scriptName}' no está permitido.` });
     }
 
-    // Limpiamos los argumentos por seguridad
     let safeArg = arg ? arg.replace(/[;&|`$]/g, '') : '';
     let safeFlag = flag === '--total' ? '--total' : '';
 
-    // CORRECCIÓN CRÍTICA: Construir el comando usando un arreglo para evitar que Node ignore el --total
     const cmdParts = ['node', `scripts/${scriptName}`];
     if (safeFlag) cmdParts.push(safeFlag);
     if (safeArg) cmdParts.push(safeArg);
@@ -48,7 +45,7 @@ router.post('/run-script', (req, res) => {
     });
 });
 
-// ... el endpoint de ngrok sigue igual ...
+// Endpoint de ngrok
 router.post('/start-ngrok', async (req, res) => {
     try {
         const port = process.env.PORT || 3000;

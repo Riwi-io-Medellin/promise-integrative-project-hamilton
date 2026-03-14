@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SofIA | Dashboard</title>
+    <title>SofIA | Dashboard Chatbot</title>
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -30,15 +30,11 @@
             <p class="nav-section mt-4">🤖 CHATBOT Y FLUJO</p>
             <a href="#" class="nav-item" onclick="showView('view-bot-trigger', this)">🚀 Trigger Masivo Chatbot</a>
             <a href="#" class="nav-item" onclick="showView('view-bot-payload', this)">👀 Ver JSON del Candidato</a>
-            <!-- NUEVO BOTÓN CHECK CANDIDATE -->
             <a href="#" class="nav-item" onclick="showView('view-check-cand', this)">🗂️ Ver Estado Candidatos</a>
 
             <p class="nav-section mt-4">🗄️ BASE DE DATOS</p>
-            <!-- NUEVO BOTÓN RESET CANDIDATO -->
             <a href="#" class="nav-item" onclick="showView('view-reset-cand', this)">👤 Preparar Candidato (9 intentos)</a>
-
             <a href="#" class="nav-item" onclick="showView('view-db-check', this)">✅ Verificar Conexión</a>
-            <a href="#" class="nav-item" onclick="showView('view-db-fill', this)">📥 Llenar Cola (Simular)</a>
             <a href="#" class="nav-item" onclick="showView('view-db-reset', this)">🔄 Limpiar Trabados (EN_CURSO)</a>
             <a href="#" class="nav-item danger-text" onclick="showView('view-db-full', this)">⚠️ Borrado Total (Reinicio Día)</a>
 
@@ -46,7 +42,7 @@
             <a href="#" class="nav-item" onclick="showView('view-test-direct', this)">✉️ Forzar Chatbot Directo</a>
             <a href="#" class="nav-item" onclick="showView('view-test-http', this)">🌐 Prueba HTTP (Ruta Local)</a>
             <a href="#" class="nav-item" onclick="showView('view-test-scenarios', this)">🎭 Simular Escenarios de Chat</a>
-            <a href="#" class="nav-item" onclick="showView('view-test-webhook', this)">📥 Simular Webhook de Respuesta</a>
+            <a href="#" class="nav-item" onclick="showView('view-test-webhook', this)">📥 Simular Webhook Respuesta</a>
         </nav>
     </div>
 </aside>
@@ -61,28 +57,50 @@
     <div class="dashboard-layout">
         <div id="views-container">
 
+            <!-- VISTA POR DEFECTO -->
             <div id="view-welcome" class="info-card active-view">
-                <div class="card-header"><div class="icon-box bg-slate-light">👋</div><div><h3>Bienvenida al Panel</h3><p class="card-desc">Selecciona un script de la barra lateral izquierda para ejecutarlo.</p></div></div>
+                <div class="card-header"><div class="icon-box bg-slate-light">👋</div><div><h3>Bienvenida al Panel</h3><p class="card-desc">Selecciona un script de la barra lateral izquierda para ver sus detalles y ejecutarlo.</p></div></div>
             </div>
 
-            <!-- NGROK & RED -->
+            <!-- ================== RED Y CONEXIÓN ================== -->
             <div id="view-ngrok" class="info-card">
-                <div class="card-header"><div class="icon-box bg-slate-light">📡</div><div><h3>Paso 2: Iniciar Túnel Ngrok</h3><p class="card-desc">Ejecuta: npm run tunnel</p></div></div>
-                <button class="btn btn-primary" onclick="startNgrok()">Iniciar Ngrok</button>
+                <div class="card-header"><div class="icon-box bg-slate-light">📡</div><div><h3>Iniciar Túnel Ngrok</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Exponer tu servidor local a Internet.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Abre un túnel en el puerto 3000 y genera una URL pública.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Porque el chatbot de tu compañera necesita una URL en Internet para enviarte los resultados por Webhook.</li>
+                </ul>
+                <button class="btn btn-primary" onclick="startNgrok()">Ejecutar: npm run tunnel</button>
             </div>
+
             <div id="view-diag-red" class="info-card">
-                <div class="card-header"><div class="icon-box bg-slate-light">🩺</div><div><h3>Diagnóstico de Red</h3><p class="card-desc">Ejecuta: node scripts/diagnostico-red.js</p></div></div>
+                <div class="card-header"><div class="icon-box bg-slate-light">🩺</div><div><h3>Diagnóstico de Red</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Verificar que tú y tu compañera estén conectadas.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Lee el <code>.env</code> y envía un ping a la URL de tu compañera.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Si el Trigger Masivo falla, esto te ayuda a saber si el problema es tuyo o si ella apagó su servidor.</li>
+                </ul>
                 <button class="btn btn-primary" onclick="runScript('diagnostico-red.js')">Ejecutar Diagnóstico</button>
             </div>
 
-            <!-- CHATBOT & FLUJO -->
+            <!-- ================== CHATBOT Y FLUJO ================== -->
             <div id="view-bot-trigger" class="info-card">
-                <div class="card-header"><div class="icon-box bg-mint-light">🚀</div><div><h3>Paso 3: Trigger Masivo Chatbot</h3><p class="card-desc">Busca a todos los que tienen 9+ intentos y les dispara el JSON.</p></div></div>
+                <div class="card-header"><div class="icon-box bg-mint-light">🚀</div><div><h3>Trigger Masivo de Chatbot</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Iniciar la fase de rescate por WhatsApp.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Busca a los candidatos con 9 o más intentos y les envía el JSON al chatbot.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para simular el momento real en que SofIA se rinde de llamar y delega el trabajo al bot de WhatsApp.</li>
+                </ul>
                 <button class="btn btn-primary bg-mint text-dark" onclick="runScript('trigger-masivo-chatbot.js')">Disparar Chatbots</button>
             </div>
 
             <div id="view-bot-payload" class="info-card">
-                <div class="card-header"><div class="icon-box bg-mint-light">👀</div><div><h3>Ver JSON de Candidato</h3><p class="card-desc">Muestra los datos que se enviarán sin dispararlos.</p></div></div>
+                <div class="card-header"><div class="icon-box bg-mint-light">👀</div><div><h3>Ver JSON (Payload) de un Candidato</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Debuggear antes de enviar.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Muestra en consola el JSON exacto que se construyó para el candidato.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para revisar que fechas, horas y UUIDs estén bien antes de enviarlos.</li>
+                </ul>
                 <div class="flex-row">
                     <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">1. Cargar Usuarios</button>
                     <select id="select-payload" class="form-control"><option value="">2. Selecciona un candidato...</option></select>
@@ -91,13 +109,23 @@
             </div>
 
             <div id="view-check-cand" class="info-card">
-                <div class="card-header"><div class="icon-box bg-mint-light">🗂️</div><div><h3>Paso 5: Ver Estado de Candidatos (Check DB)</h3><p class="card-desc">Revisa si la Base de Datos se actualizó después de que el candidato respondió por WhatsApp.</p></div></div>
+                <div class="card-header"><div class="icon-box bg-mint-light">🗂️</div><div><h3>Ver Estado de Candidatos (Check DB)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Confirmar el éxito del flujo completo.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Imprime una tabla con el estado actual de los candidatos.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para verificar que el Webhook actualizó correctamente la base de datos de SofIA tras una respuesta de WhatsApp.</li>
+                </ul>
                 <button class="btn btn-primary" onclick="runScript('check-candidate.js')">Revisar Estados Actuales</button>
             </div>
 
-            <!-- BASE DE DATOS -->
+            <!-- ================== BASE DE DATOS ================== -->
             <div id="view-reset-cand" class="info-card">
-                <div class="card-header"><div class="icon-box bg-yellow-light">👤</div><div><h3>Paso 1: Preparar Candidato</h3><p class="card-desc">Pone al candidato en estado PENDIENTE y le da 9 intentos fallidos para que el Trigger Masivo lo detecte.</p></div></div>
+                <div class="card-header"><div class="icon-box bg-yellow-light">👤</div><div><h3>Preparar Candidato (Reset a 9 Intentos)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Probar el Chatbot.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Le pone 9 intentos y estado <code>PENDIENTE</code> al candidato.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Porque el trigger masivo requiere mínimo 9 intentos para dispararse.</li>
+                </ul>
                 <div class="flex-row">
                     <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">1. Cargar Usuarios</button>
                     <select id="select-reset-cand" class="form-control"><option value="">2. Selecciona a quién preparar...</option></select>
@@ -105,19 +133,44 @@
                 </div>
             </div>
 
-            <div id="view-db-check" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">✅</div><div><h3>Verificar Conexión BD</h3></div></div><button class="btn btn-primary" onclick="runScript('test-db-connection.js')">Verificar</button></div>
-            <div id="view-db-fill" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">📥</div><div><h3>Llenar Cola</h3></div></div><button class="btn btn-primary" onclick="runScript('llenar-cola.js')">Llenar Cola</button></div>
-            <div id="view-db-reset" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">🔄</div><div><h3>Limpiar Llamadas Trabadas (EN_CURSO)</h3></div></div><button class="btn btn-primary" onclick="runScript('resetear-bd.js')">Limpiar Rápidamente</button></div>
+            <div id="view-db-check" class="info-card">
+                <div class="card-header"><div class="icon-box bg-yellow-light">✅</div><div><h3>Verificar Conexión BD</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Verificar conectividad con Supabase.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Hace un ping a PostgreSQL.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Como primer paso si otros scripts fallan o dan Timeout.</li>
+                </ul>
+                <button class="btn btn-primary" style="background: #E6CA52; color: #181E4B;" onclick="runScript('test-db-connection.js')">Verificar Conexión</button>
+            </div>
 
-            <!-- AQUÍ ESTÁ EL BOTÓN DE BORRADO TOTAL ARREGLADO -->
+            <div id="view-db-reset" class="info-card">
+                <div class="card-header"><div class="icon-box bg-yellow-light">🔄</div><div><h3>Limpiar Llamadas Trabadas (EN_CURSO)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Mantenimiento preventivo.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Libera llamadas congeladas en estado <code>EN_CURSO</code>.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Útil si detuviste el servidor bruscamente durante una operación de red.</li>
+                </ul>
+                <button class="btn btn-primary" style="background: #E6CA52; color: #181E4B;" onclick="runScript('resetear-bd.js')">Limpiar Rápidamente</button>
+            </div>
+
             <div id="view-db-full" class="info-card">
-                <div class="card-header"><div class="icon-box" style="background: rgba(254,101,79,0.1);">⚠️</div><div><h3>Borrado Total del Historial</h3><p class="card-desc" style="color: #FE654F;">Ejecuta "resetear-bd.js --total". Borra la cola de HOY y devuelve a TODOS a PENDIENTE 0 intentos.</p></div></div>
+                <div class="card-header"><div class="icon-box" style="background: rgba(254,101,79,0.1);">⚠️</div><div><h3>Borrado Total del Historial</h3></div></div>
+                <ul class="script-details" style="color: #FE654F;">
+                    <li><strong>🎯 Propósito:</strong> Iniciar un "nuevo día" desde cero.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Borra TODO el historial de llamadas, vacía la cola y pone 0 intentos a todos.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> El sistema no llamará ni interactuará con alguien que ya agotó intentos o ya está en el historial.</li>
+                </ul>
                 <button class="btn btn-danger" onclick="runScript('resetear-bd.js', '', '--total')">⚠️ Ejecutar Borrado Total</button>
             </div>
 
-            <!-- PRUEBAS -->
+            <!-- ================== PRUEBAS (TESTING) ================== -->
             <div id="view-test-direct" class="info-card">
                 <div class="card-header"><div class="icon-box bg-slate-light">✉️</div><div><h3>Forzar Chatbot a Usuario</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Probar la lógica interna de SofIA.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Envía el JSON ignorando la regla de los 9 intentos.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Útil para saber si el problema es de un candidato en específico.</li>
+                </ul>
                 <div class="flex-row">
                     <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">Cargar Usuarios</button>
                     <select id="select-test-direct" class="form-control"><option value="">Selecciona...</option></select>
@@ -125,9 +178,35 @@
                 </div>
             </div>
 
-            <div id="view-test-http" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">🌐</div><div><h3>Prueba HTTP API Local</h3></div></div><button class="btn btn-primary" onclick="runScript('test-chatbot.js')">Probar Ruta</button></div>
-            <div id="view-test-scenarios" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">🎭</div><div><h3>Simular Escenarios</h3></div></div><button class="btn btn-primary" onclick="runScript('test-webhook-escenarios.js')">Simular</button></div>
-            <div id="view-test-webhook" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">📥</div><div><h3>Simular Webhook de Respuesta</h3></div></div><button class="btn btn-primary" onclick="runScript('test-webhook-respuesta.js')">Simular Respuesta</button></div>
+            <div id="view-test-http" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">🌐</div><div><h3>Prueba HTTP API Local</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Probar la ruta POST de Express.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Hace un fetch a <code>/api/chatbot/trigger-manual</code> en localhost.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para simular qué pasaría si Postman intenta llamar a tu API.</li>
+                </ul>
+                <button class="btn btn-primary" onclick="runScript('test-chatbot.js')">Probar Ruta</button>
+            </div>
+
+            <div id="view-test-scenarios" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">🎭</div><div><h3>Simular Escenarios (Respuestas)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Validar reglas de negocio.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Finge que los candidatos respondieron Agendado, No interesado, etc.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para ver si la BD guarda bien las notas y estados ante casos complejos.</li>
+                </ul>
+                <button class="btn btn-primary" onclick="runScript('test-webhook-escenarios.js')">Simular Escenarios</button>
+            </div>
+
+            <div id="view-test-webhook" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">📥</div><div><h3>Simular Webhook Entrante</h3></div></div>
+                <ul class="script-details">
+                    <li><strong>🎯 Propósito:</strong> Probar tu Webhook local.</li>
+                    <li><strong>⚙️ Qué hace:</strong> Simula recibir un JSON idéntico al de tu compañera.</li>
+                    <li><strong>💡 Por qué usarlo:</strong> Para probar que SofIA procesa bien la respuesta sin depender de tu compañera.</li>
+                </ul>
+                <button class="btn btn-primary" onclick="runScript('test-webhook-respuesta.js')">Simular Respuesta</button>
+            </div>
 
         </div>
 
