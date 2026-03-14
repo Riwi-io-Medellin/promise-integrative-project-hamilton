@@ -6,6 +6,8 @@
 
 const { getTwilioClient } = require('./twilioClient');
 const pool                = require('../../db/pool');
+const { getEnCursoResultadoId } = require('../../db/lookups');
+const { getLatestActiveLlamada } = require('../../db/llamadas');
 const logger              = require('../../utils/logger');
 
 /**
@@ -14,8 +16,39 @@ const logger              = require('../../utils/logger');
  */
 const _activeCallState = new Map();
 
+function getInMemoryActiveCallForCandidate(candidatoId) {
+  for (const [callSid, state] of _activeCallState.entries()) {
+    if (state?.candidatoId === candidatoId) {
+      return { callSid, ...state };
+    }
+  }
+  return null;
+}
+
 function getBaseUrl() {
   return (process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
+}
+
+function assertPublicBaseUrl(baseUrl) {
+  let parsed;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error(
+      `BASE_URL is invalid: "${baseUrl}". Set a public URL such as https://tu-subdominio.ngrok-free.app`,
+    );
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  const blockedHosts = new Set(['localhost', '0.0.0.0']);
+  const isLoopback = hostname === '127.0.0.1' || hostname === '::1';
+
+  if (blockedHosts.has(hostname) || isLoopback) {
+    throw new Error(
+      `BASE_URL must be a public URL for Twilio callbacks. Current value: "${baseUrl}". `
+      + 'Use an HTTPS tunnel such as ngrok and restart the server.',
+    );
+  }
 }
 
 /**
@@ -26,6 +59,13 @@ function getBaseUrl() {
  * @returns {Promise<{ callSid: string, llamadaId: number|null }>}
  */
 async function initiateCall(candidatoId) {
+  const existingInMemory = getInMemoryActiveCallForCandidate(candidatoId);
+  if (existingInMemory) {
+    const err = new Error(`Candidate already has an active call: ${existingInMemory.callSid}`);
+    err.statusCode = 409;
+    throw err;
+  }
+
   const { rows } = await pool.query(
     'SELECT telefono, nombre FROM public.candidatos WHERE id = $1 LIMIT 1',
     [candidatoId],
@@ -37,14 +77,19 @@ async function initiateCall(candidatoId) {
   if (!fromNumber) throw new Error('Missing TWILIO_FROM_NUMBER env var');
 
   const baseUrl = getBaseUrl();
+  assertPublicBaseUrl(baseUrl);
   const twimlUrl      = `${baseUrl}/twilio/twiml?candidato_id=${encodeURIComponent(candidatoId)}`;
   const statusCbUrl   = `${baseUrl}/twilio/status?candidato_id=${encodeURIComponent(candidatoId)}`;
 
   // ── Create EN_CURSO llamada record ─────────────────────────────────────────
-  const { rows: enCursoRows } = await pool.query(
-    "SELECT id FROM public.resultados_llamada WHERE codigo = 'EN_CURSO' LIMIT 1",
-  );
-  const enCursoId = enCursoRows[0]?.id || null;
+  const enCursoId = await getEnCursoResultadoId();
+
+  const existingDbCall = await getLatestActiveLlamada(candidatoId, enCursoId);
+  if (existingDbCall) {
+    const err = new Error(`Candidate already has an EN_CURSO call in DB: ${existingDbCall.id}`);
+    err.statusCode = 409;
+    throw err;
+  }
 
   let llamadaId = null;
   if (enCursoId) {

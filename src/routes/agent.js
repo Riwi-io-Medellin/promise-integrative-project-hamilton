@@ -34,7 +34,7 @@ router.post('/call', async (req, res) => {
     return res.status(201).json({ success: true, ...result });
   } catch (err) {
     logger.error({ event: 'api_call_error', candidato_id: candidatoId, err: err.message });
-    return res.status(500).json({ error: err.message });
+    return res.status(err.statusCode || 500).json({ error: err.message });
   }
 });
 

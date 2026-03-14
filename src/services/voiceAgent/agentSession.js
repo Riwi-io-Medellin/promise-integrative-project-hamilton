@@ -22,10 +22,14 @@ const EventEmitter = require('events');
 
 const { transcribeAudio }     = require('../openai/sttService');
 const { processMessage }      = require('../openai/llmService');
-const { synthesizeSpeech }    = require('../elevenlabs/ttsService');
+const { streamSpeech }        = require('../elevenlabs/ttsService');
 const { mulawToPcm16, pcm16ToWav, computeRmsEnergy } = require('./audioUtils');
 const { processWebhookResult } = require('../webhook/webhookService');
 const logger                  = require('../../utils/logger');
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ── Silence / VAD constants ───────────────────────────────────────────────────
 /** RMS energy (0–32 768) below which a frame is considered silent */
@@ -40,8 +44,10 @@ const MAX_RECORDING_SECS = 20;
 const FRAMES_PER_SEC = 50;
 
 // ── Conversation limits ───────────────────────────────────────────────────────
-const MAX_NO_PROGRESS_TURNS = 2;
+const MAX_NO_PROGRESS_TURNS = 3;
 const MAX_TOTAL_TURNS       = 20;
+const POST_TTS_GRACE_MS     = 350;
+const MULAW_BYTES_PER_MS    = 8;
 
 // ── Agent resultado → internal webhook resultado ──────────────────────────────
 const RESULTADO_MAP = {
@@ -113,7 +119,7 @@ class AgentSession extends EventEmitter {
       + 'Le llamo para agendar su cita de orientación. ¿Tiene un momento?';
 
     this.history.push({ role: 'assistant', content: greeting });
-    await this._speak(greeting);
+    await this._speak(greeting, 'greeting');
     this._isListening = true;
   }
 
@@ -243,7 +249,7 @@ class AgentSession extends EventEmitter {
 
     // ── Speak and keep listening ──────────────────────────────────────────────
     if (text) {
-      await this._speak(text);
+      await this._speak(text, 'reply');
     }
     this._isListening = true;
   }
@@ -284,7 +290,7 @@ class AgentSession extends EventEmitter {
 
     // ── Goodbye utterance ─────────────────────────────────────────────────────
     const goodbye = this._buildGoodbye(args.resultado);
-    await this._speak(goodbye);
+    await this._speak(goodbye, 'goodbye');
 
     this.emit('session_ended', { resultado: internalResultado });
   }
@@ -308,16 +314,36 @@ class AgentSession extends EventEmitter {
   /**
    * Synthesise `text` and stream the µ-law audio back to Twilio in 160-byte chunks.
    * @param {string} text
+   * @param {'greeting'|'reply'|'goodbye'} phase
    */
-  async _speak(text) {
+  async _speak(text, phase = 'reply') {
     if (!this._sendAudio || !text) return;
     this._isSpeaking = true;
     try {
-      const audio     = await synthesizeSpeech(text);
-      const chunkSize = 160; // 20 ms at 8 kHz mono µ-law
-      for (let i = 0; i < audio.length; i += chunkSize) {
-        const slice = audio.subarray(i, i + chunkSize);
-        this._sendAudio(slice.toString('base64'));
+      logger.info({
+        event: 'assistant_utterance',
+        candidato_id: this.candidatoId,
+        phase,
+        text,
+      });
+      let streamedBytes = 0;
+      let firstChunkAt = null;
+      const { bytes } = await streamSpeech(text, {
+        onChunk: (chunk) => {
+          if (firstChunkAt === null) firstChunkAt = Date.now();
+          streamedBytes += chunk.length;
+          this._sendAudio(chunk.toString('base64'));
+        },
+      });
+
+      const totalBytes = bytes || streamedBytes;
+      if (firstChunkAt !== null && totalBytes > 0) {
+        const playbackMs = Math.ceil(totalBytes / MULAW_BYTES_PER_MS);
+        const elapsedSinceFirstChunk = Date.now() - firstChunkAt;
+        const remainingPlaybackMs = Math.max(0, playbackMs - elapsedSinceFirstChunk);
+        await sleep(remainingPlaybackMs + POST_TTS_GRACE_MS);
+      } else {
+        await sleep(POST_TTS_GRACE_MS);
       }
     } catch (err) {
       logger.error({ event: 'speak_error', candidato_id: this.candidatoId, err: err.message });

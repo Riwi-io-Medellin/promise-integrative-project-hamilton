@@ -36,7 +36,7 @@ function setupWebSocketServer(httpServer) {
     // Extract candidato_id from the URL query string
     // e.g. wss://server/ws/twilio-media?candidato_id=<uuid>
     const reqUrl      = new URL(req.url, 'http://localhost');
-    const candidatoId = reqUrl.searchParams.get('candidato_id') || null;
+    let candidatoId   = reqUrl.searchParams.get('candidato_id') || null;
 
     logger.info({ event: 'ws_connected', candidato_id: candidatoId });
 
@@ -63,6 +63,13 @@ function setupWebSocketServer(httpServer) {
         // ── Stream started – create agent session ───────────────────────────
         case 'start': {
           streamSid = msg.start?.streamSid ?? msg.streamSid ?? null;
+          const startCandidateId =
+            msg.start?.customParameters?.candidato_id
+            || msg.start?.customParameters?.candidatoId
+            || null;
+          if (startCandidateId) {
+            candidatoId = startCandidateId;
+          }
           logger.info({ event: 'ws_stream_start', stream_sid: streamSid, candidato_id: candidatoId });
 
           if (!candidatoId) {

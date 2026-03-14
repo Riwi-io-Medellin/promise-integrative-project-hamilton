@@ -32,14 +32,16 @@ function getWssBase() {
 router.post('/twiml', (req, res) => {
   const candidatoId = req.query.candidato_id || req.body?.candidato_id || '';
   const wssBase     = getWssBase();
-  const streamUrl   = `${wssBase}/ws/twilio-media?candidato_id=${encodeURIComponent(candidatoId)}`;
+  const streamUrl   = `${wssBase}/ws/twilio-media`;
 
   logger.info({ event: 'twiml_served', candidato_id: candidatoId, stream_url: streamUrl });
 
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${streamUrl}"/>
+    <Stream url="${streamUrl}">
+      <Parameter name="candidato_id" value="${String(candidatoId)}" />
+    </Stream>
   </Connect>
 </Response>`;
 
