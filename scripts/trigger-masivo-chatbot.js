@@ -20,10 +20,9 @@ async function main() {
 
   try {
     // 1. Buscar candidatos elegibles
-    // Criterio nuevo solicitado: 
-    // - Columna 'intentos_llamada' en tabla candidatos >= 9
+    // Criterio solicitado: Hitos exactos 9, 18, 27 y estado PENDIENTE/NO_CONTESTA
     
-    console.log('🔍 Buscando candidatos con intentos_llamada >= 9 ...');
+    console.log('🔍 Buscando candidatos con intentos_llamada IN (9, 18, 27) y estado PENDIENTE/NO_CONTESTA ...');
     
     // Función de reintento para consultas
     async function queryWithRetry(queryText, params, retries = 3) {
@@ -39,9 +38,11 @@ async function main() {
     }
 
     const query = `
-      SELECT id as candidato_id, intentos_llamada as failed_count
-      FROM public.candidatos
-      WHERE intentos_llamada >= 9
+      SELECT c.id as candidato_id, c.intentos_llamada as failed_count
+      FROM public.candidatos c
+      JOIN public.estados_gestion eg ON c.estado_gestion_id = eg.id
+      WHERE c.intentos_llamada IN (9, 18, 27)
+        AND eg.codigo IN ('PENDIENTE', 'NO_CONTESTA')
       LIMIT $1
     `;
 

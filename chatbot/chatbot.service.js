@@ -46,13 +46,13 @@ async function shouldTriggerChatbot(candidatoId) {
       AND l.fecha_hora_llamada::date = CURRENT_DATE
       AND rl.codigo = 'NO_CONTESTA'
   `;
-  
-  const { rows } = await pool.query(query, [candidatoId]);
-  const count = parseInt(rows[0].failed_calls, 10);
-  
-  // Condición estricta: exactamente 9 llamadas.
+
+    const { rows } = await pool.query(query, [candidatoId]);
+    const count = parseInt(rows[0].failed_calls, 10);
+
+    // Condición estricta: exactamente 9 llamadas.
   // Esto evita disparar múltiples veces el mismo día si sigue fallando.
-  return count === 9;
+    return [9, 18, 27].includes(count);
 }
 
 /**
