@@ -1,6 +1,58 @@
 const EDGE_PROXY_URL = '/.netlify/edge-functions/supabase-proxy';
+const LOCAL_DEV_PROXY_URL = '/__local/supabase-proxy';
+const SUPABASE_URL_STORAGE_KEY = 'supabase_direct_url';
+const LEGACY_SUPABASE_ANON_KEY_STORAGE_KEY = 'supabase_direct_anon_key';
+const SUPABASE_URL_ENV = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY_ENV = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export async function syncCandidatosFromSupabase() {
+const isRunningOnNetlify = () => window.location.hostname.endsWith('.netlify.app');
+const isLocalDevHost = () => ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const isSecretKey = (value) => String(value || '').trim().startsWith('sb_secret_');
+
+const normalizeSupabaseUrl = (value) => {
+    if (!value) return '';
+
+    try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')) {
+            return '';
+        }
+        return parsed.toString().replace(/\/+$/, '');
+    } catch (error) {
+        return '';
+    }
+};
+
+const getStoredConnection = () => ({
+    supabaseUrl: normalizeSupabaseUrl(localStorage.getItem(SUPABASE_URL_STORAGE_KEY) || '')
+});
+
+export function configureSupabaseConnection({ supabaseUrl = '', supabaseAnonKey = '' } = {}) {
+    const normalizedUrl = normalizeSupabaseUrl(supabaseUrl);
+
+    if (normalizedUrl) {
+        localStorage.setItem(SUPABASE_URL_STORAGE_KEY, normalizedUrl);
+    }
+
+    // Never persist keys client-side; keep them in .env or pass only at runtime.
+    localStorage.removeItem(LEGACY_SUPABASE_ANON_KEY_STORAGE_KEY);
+    void supabaseAnonKey;
+}
+
+export function getSupabaseConnectionConfig() {
+    localStorage.removeItem(LEGACY_SUPABASE_ANON_KEY_STORAGE_KEY);
+
+    const stored = getStoredConnection();
+    const envUrl = normalizeSupabaseUrl(SUPABASE_URL_ENV);
+    const envKey = SUPABASE_ANON_KEY_ENV.trim();
+    return {
+        // Prefer env over localStorage so local setup is reproducible and avoids stale browser data.
+        supabaseUrl: envUrl || stored.supabaseUrl,
+        supabaseAnonKey: envKey
+    };
+}
+
+export async function syncCandidatosFromSupabase(options = {}) {
     const [
         candidatos,
         generos,
@@ -10,13 +62,13 @@ export async function syncCandidatosFromSupabase() {
         horarios,
         estadosGestion
     ] = await Promise.all([
-        fetchSupabaseTable('candidatos'),
-        fetchSupabaseTable('generos'),
-        fetchSupabaseTable('municipios'),
-        fetchSupabaseTable('niveles_educativos'),
-        fetchSupabaseTable('conocimientos_programacion'),
-        fetchSupabaseTable('horarios'),
-        fetchSupabaseTable('estados_gestion')
+        fetchSupabaseTable('candidatos', options),
+        fetchSupabaseTable('generos', options),
+        fetchSupabaseTable('municipios', options),
+        fetchSupabaseTable('niveles_educativos', options),
+        fetchSupabaseTable('conocimientos_programacion', options),
+        fetchSupabaseTable('horarios', options),
+        fetchSupabaseTable('estados_gestion', options)
     ]);
 
     const porId = (list) => new Map((list || []).map(item => [String(item.id), item]));
@@ -57,12 +109,12 @@ export async function syncCandidatosFromSupabase() {
     });
 }
 
-export async function syncLlamadasFromSupabase() {
+export async function syncLlamadasFromSupabase(options = {}) {
     const [llamadas, candidatos, resultados, motivos] = await Promise.all([
-        fetchSupabaseTable('llamadas'),
-        fetchSupabaseTable('candidatos'),
-        fetchSupabaseTable('resultados_llamada'),
-        fetchSupabaseTable('motivos_llamada')
+        fetchSupabaseTable('llamadas', options),
+        fetchSupabaseTable('candidatos', options),
+        fetchSupabaseTable('resultados_llamada', options),
+        fetchSupabaseTable('motivos_llamada', options)
     ]);
 
     const candidatosMap = new Map((candidatos || []).map(c => [String(c.id), c]));
@@ -85,11 +137,11 @@ export async function syncLlamadasFromSupabase() {
     });
 }
 
-export async function syncEventosFromSupabase() {
+export async function syncEventosFromSupabase(options = {}) {
     const [eventos, horarios, candidatos] = await Promise.all([
-        fetchSupabaseTable('eventos'),
-        fetchSupabaseTable('horarios'),
-        fetchSupabaseTable('candidatos')
+        fetchSupabaseTable('eventos', options),
+        fetchSupabaseTable('horarios', options),
+        fetchSupabaseTable('candidatos', options)
     ]);
 
     const horariosMap = new Map((horarios || []).map(h => [String(h.id), h]));
@@ -118,19 +170,98 @@ export async function syncEventosFromSupabase() {
     });
 }
 
-export async function fetchSupabaseTable(table) {
+const readFromEdgeProxy = async (table) => {
     const endpoint = new URL(EDGE_PROXY_URL, window.location.origin);
     endpoint.searchParams.set('table', table);
 
-    try {
-        const response = await fetch(endpoint.toString());
-        if (!response.ok) {
-            throw new Error(`No fue posible sincronizar la tabla ${table} (${response.status})`);
-        }
-
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        throw new Error(error?.message || String(error));
+    const response = await fetch(endpoint.toString());
+    if (!response.ok) {
+        throw new Error(`Edge Function devolvió ${response.status}`);
     }
+
+    const data = await response.json().catch(() => {
+        throw new Error('Edge devolvió contenido no JSON.');
+    });
+    return Array.isArray(data) ? data : [];
+};
+
+const readFromLocalDevProxy = async (table) => {
+    const endpoint = new URL(LOCAL_DEV_PROXY_URL, window.location.origin);
+    endpoint.searchParams.set('table', table);
+
+    const response = await fetch(endpoint.toString());
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        const detail = typeof data === 'object' && data !== null
+            ? (data.error || data.message || JSON.stringify(data))
+            : String(data || '');
+        throw new Error(`Proxy local devolvió ${response.status}${detail ? `: ${detail}` : ''}`);
+    }
+
+    return Array.isArray(data) ? data : [];
+};
+
+const readDirectFromSupabase = async (table, supabaseUrl, supabaseAnonKey) => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY para conexión directa.');
+    }
+    if (isSecretKey(supabaseAnonKey)) {
+        throw new Error('La secret key no se puede usar directo en navegador. Usa proxy local o Edge Function.');
+    }
+
+    const endpoint = `${supabaseUrl}/rest/v1/${table}?select=*`;
+    const response = await fetch(endpoint, {
+        headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`
+        }
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+        const detail = typeof data === 'object' && data !== null
+            ? (data.message || data.error || data.hint || JSON.stringify(data))
+            : String(data || '');
+        throw new Error(`Supabase REST devolvió ${response.status}${detail ? `: ${detail}` : ''}`);
+    }
+
+    return Array.isArray(data) ? data : [];
+};
+
+export async function fetchSupabaseTable(table, options = {}) {
+    const config = getSupabaseConnectionConfig();
+    const overrideUrl = normalizeSupabaseUrl(options.supabaseUrl || '');
+    const overrideKey = String(options.supabaseAnonKey || '').trim();
+    const supabaseUrl = overrideUrl || config.supabaseUrl;
+    const supabaseAnonKey = overrideKey || config.supabaseAnonKey;
+    const preferDirect = typeof options.preferDirect === 'boolean'
+        ? options.preferDirect
+        : !isRunningOnNetlify();
+
+    const strategies = [];
+    if (isLocalDevHost()) {
+        strategies.push(() => readFromLocalDevProxy(table));
+        strategies.push(() => readFromEdgeProxy(table));
+        if (!isSecretKey(supabaseAnonKey)) {
+            strategies.push(() => readDirectFromSupabase(table, supabaseUrl, supabaseAnonKey));
+        }
+    } else if (preferDirect) {
+        strategies.push(() => readDirectFromSupabase(table, supabaseUrl, supabaseAnonKey));
+        strategies.push(() => readFromEdgeProxy(table));
+    } else {
+        strategies.push(() => readFromEdgeProxy(table));
+        strategies.push(() => readDirectFromSupabase(table, supabaseUrl, supabaseAnonKey));
+    }
+
+    const errors = [];
+    for (const strategy of strategies) {
+        try {
+            return await strategy();
+        } catch (error) {
+            errors.push(error?.message || String(error));
+        }
+    }
+
+    throw new Error(`No fue posible sincronizar ${table}. ${errors.join(' | ')}`);
 }

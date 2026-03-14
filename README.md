@@ -43,6 +43,14 @@ npm run build
 npm run preview
 ```
 
+## Test Supabase Connection
+
+Run a direct connectivity check against the main dashboard tables:
+
+```bash
+npm run check:supabase
+```
+
 ## Netlify Environment Variables
 
 The Edge Function uses Netlify environment variables only:
@@ -53,6 +61,26 @@ The Edge Function uses Netlify environment variables only:
 Edge function file:
 
 - `netlify/edge-functions/supabase-proxy.js`
+
+## Local Development Without Netlify Edge
+
+If you are not running on Netlify, the app uses a local Vite proxy first (`/__local/supabase-proxy`) and can also connect directly to Supabase REST as fallback.
+
+Set these Vite variables in your local `.env`:
+
+- `VITE_SUPABASE_URL=https://<project>.supabase.co`
+- `VITE_SUPABASE_ANON_KEY=<anon-key>`
+
+Optional server-side vars for local proxy (recommended for `sb_secret_*` keys):
+
+- `SUPABASE_URL=https://<project>.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY=<service-role-or-secret-key>`
+
+Behavior:
+
+- On Netlify: tries Edge Function first, then direct Supabase fallback if configured.
+- On localhost: tries local Vite proxy first, then Edge Function, then direct Supabase (only for non-secret keys).
+- Outside Netlify/localhost: tries direct Supabase first, then Edge Function.
 
 ## Notes
 

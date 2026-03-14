@@ -1,4 +1,8 @@
-import { syncCandidatosFromSupabase } from '../services/supabase.js';
+import {
+    configureSupabaseConnection,
+    getSupabaseConnectionConfig,
+    syncCandidatosFromSupabase
+} from '../services/supabase.js';
 
 export function initCandidatesView() {
     // Copiado y adaptado de la lógica original en candidatosView.js
@@ -199,12 +203,31 @@ export function initCandidatesView() {
     document.getElementById('btnCancelarDB').onclick = cerrarDB;
 
     const dbUrlInput = document.getElementById('dbUrl');
-    if (dbUrlInput) dbUrlInput.value = '/.netlify/edge-functions/supabase-proxy';
+    const dbAnonKeyInput = document.getElementById('dbAnonKey');
+    const connection = getSupabaseConnectionConfig();
+
+    if (dbUrlInput) {
+        dbUrlInput.value = connection.supabaseUrl || '/.netlify/edge-functions/supabase-proxy';
+    }
 
     btnSincronizar.onclick = async () => {
         btnSincronizar.disabled = true;
         try {
-            const data = await syncCandidatosFromSupabase();
+            const inputUrl = String(dbUrlInput?.value || '').trim();
+            const inputAnonKey = String(dbAnonKeyInput?.value || '').trim();
+            const wantsDirectSupabase = /\.supabase\.co\/?$/i.test(inputUrl);
+            const options = {};
+
+            if (wantsDirectSupabase) {
+                options.preferDirect = true;
+                options.supabaseUrl = inputUrl;
+                if (inputAnonKey) {
+                    options.supabaseAnonKey = inputAnonKey;
+                }
+                configureSupabaseConnection(options);
+            }
+
+            const data = await syncCandidatosFromSupabase(options);
             if (Array.isArray(data)) {
                 listaOriginal = data;
                 guardarEnLocal();

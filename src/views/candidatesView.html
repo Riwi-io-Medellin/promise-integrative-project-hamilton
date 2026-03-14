@@ -191,8 +191,17 @@
                     <input type="text" id="dbUrl" placeholder="https://tu-proyecto.supabase.co" 
                         class="w-full p-4 bg-white border border-indigo-400 rounded-2xl outline-none ring-2 ring-indigo-500/10 transition-all">
                     <p class="text-[11px] text-slate-400 ml-1">
-                        Si pegas la URL de Supabase, se guarda para usarla con tu Edge Function en Netlify.<br>
-                        Si ya configuraste la URL en "Configuración", aquí no necesitas cambiar nada.
+                        En Netlify se usa el endpoint `/.netlify/edge-functions/supabase-proxy`.<br>
+                        Fuera de Netlify puedes pegar `https://tu-proyecto.supabase.co` para conexión directa.
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-500 ml-1">Supabase Anon Key (solo conexión directa)</label>
+                    <input type="text" id="dbAnonKey" name="supabase_api_key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="eyJhbGciOi..." 
+                        class="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                    <p class="text-[11px] text-slate-400 ml-1">
+                        Opcional si ya definiste `VITE_SUPABASE_ANON_KEY` en tu entorno local.
                     </p>
                 </div>
 

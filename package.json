@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:supabase": "node scripts/check-supabase.mjs"
   },
   "devDependencies": {
     "vite": "^5.4.10"
