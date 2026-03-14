@@ -1,3 +1,5 @@
+import { syncEventosFromSupabase } from '../services/supabase.js';
+
 export function initEventosView() {
     // Elementos del DOM
     const grid = document.getElementById('grid-eventos');
@@ -35,9 +37,8 @@ export function initEventosView() {
         if (window.lucide) lucide.createIcons();
     };
 
-    // Usar únicamente localStorage; no datos hardcodeados aquí para evitar duplicados
+    // Usar localStorage como respaldo, priorizando sincronización desde Supabase
     let eventosGuardados = JSON.parse(localStorage.getItem('eventos_riwicalls')) || [];
-    renderizarCards(eventosGuardados);
 
     btnAbrirEv?.addEventListener('click', () => { cargarCandidatosDinamicos(); if (modalEv) modalEv.style.display = 'flex'; });
     btnCerrarEv?.addEventListener('click', () => { if (modalEv) modalEv.style.display = 'none'; });
@@ -81,4 +82,20 @@ export function initEventosView() {
             if (modalEv) modalEv.style.display = 'flex';
         }
     });
+
+    const cargarEventos = async () => {
+        try {
+            const eventosSupabase = await syncEventosFromSupabase();
+            if (Array.isArray(eventosSupabase) && eventosSupabase.length) {
+                eventosGuardados = eventosSupabase;
+                localStorage.setItem('eventos_riwicalls', JSON.stringify(eventosGuardados));
+            }
+        } catch (error) {
+            console.warn('No se pudieron cargar eventos desde Supabase:', error);
+        }
+
+        renderizarCards(eventosGuardados);
+    };
+
+    cargarEventos();
 }

@@ -1,3 +1,5 @@
+import { syncLlamadasFromSupabase } from '../services/supabase.js';
+
 export function initLlamadasView() {
     const tabla = document.getElementById('lista-llamadas');
     const modal = document.getElementById('modalNuevaLlamada');
@@ -5,14 +7,13 @@ export function initLlamadasView() {
     const btnN8n = document.getElementById('btn-n8n-flow');
     let indexEdicion = null;
 
-    let candidatos = JSON.parse(localStorage.getItem('candidatos_riwicalls')) || [];
+    let llamadas = JSON.parse(localStorage.getItem('llamadas_riwicalls')) || [];
 
     const renderizarFilas = (datos) => {
         if (!tabla) return;
-        tabla.innerHTML = candidatos.map((c, index) => {
+        tabla.innerHTML = datos.map((c, index) => {
             const nombreReal = c.nombre || c.Nombre || "Sin nombre";
-            const yaSeLlamo = c.estado !== 'Inscrito';
-            const fechaMostrar = yaSeLlamo ? (c.fechaLlamada || '') : '';
+            const fechaMostrar = c.fechaLlamada ? new Date(c.fechaLlamada).toLocaleString() : '';
 
             return `
                 <tr>
@@ -40,7 +41,7 @@ export function initLlamadasView() {
         document.querySelectorAll('.btn-editar-gestion').forEach(btn => {
             btn.onclick = () => {
                 indexEdicion = btn.getAttribute('data-index');
-                const cand = candidatos[indexEdicion];
+                const cand = llamadas[indexEdicion];
                 document.getElementById('nuevoNombre').value = cand.nombre || cand.Nombre;
                 document.getElementById('nuevoTel').value = cand.tel || cand.Telefono;
                 document.getElementById('detalleMotivo').value = cand.motivo || '';
@@ -57,7 +58,7 @@ export function initLlamadasView() {
             try {
                 const respuesta = await fetch(urlConfigurada, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ proyecto: "RiwiCalls", usuario: "Andrea Lizcano", datos: candidatos })
+                    body: JSON.stringify({ proyecto: "RiwiCalls", usuario: "Andrea Lizcano", datos: llamadas })
                 });
                 if (respuesta.ok) alert(' Flujo de n8n iniciado con éxito.');
             } catch (error) { alert(' Error de conexión con n8n. Revisa la URL en Configuración.'); }
@@ -71,20 +72,37 @@ export function initLlamadasView() {
     document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
 
     document.getElementById('btnGuardarLlamada')?.addEventListener('click', () => {
-        const motivo = document.getElementById('detalleMotivo').value;
+            const motivo = document.getElementById('detalleMotivo').value;
 
         if (indexEdicion !== null) {
-            if (candidatos[indexEdicion].estado === 'Inscrito') {
-                candidatos[indexEdicion].estado = 'Llamar';
-                candidatos[indexEdicion].fechaLlamada = new Date().toLocaleString();
+            if (llamadas[indexEdicion].estado === 'Inscrito') {
+                llamadas[indexEdicion].estado = 'Llamar';
+                llamadas[indexEdicion].fechaLlamada = new Date().toLocaleString();
             }
-            candidatos[indexEdicion].motivo = motivo;
-            localStorage.setItem('candidatos_riwicalls', JSON.stringify(candidatos));
-            renderizarFilas(candidatos);
-            modal.style.display = 'none'; indexEdicion = null;
-            document.getElementById('nuevoNombre').value = ''; document.getElementById('nuevoTel').value = ''; document.getElementById('detalleMotivo').value = ''; 
+            llamadas[indexEdicion].motivo = motivo;
+            localStorage.setItem('llamadas_riwicalls', JSON.stringify(llamadas));
+            renderizarFilas(llamadas);
+            modal.style.display = 'none';
+            indexEdicion = null;
+            document.getElementById('nuevoNombre').value = '';
+            document.getElementById('nuevoTel').value = '';
+            document.getElementById('detalleMotivo').value = '';
         } else { alert("Llena nombre y teléfono"); }
     });
 
-    renderizarFilas(candidatos);
+    const cargarLlamadas = async () => {
+        try {
+            const llamadasSupabase = await syncLlamadasFromSupabase();
+            if (Array.isArray(llamadasSupabase) && llamadasSupabase.length) {
+                llamadas = llamadasSupabase;
+                localStorage.setItem('llamadas_riwicalls', JSON.stringify(llamadas));
+            }
+        } catch (error) {
+            console.warn('No se pudieron cargar llamadas desde Supabase:', error);
+        }
+
+        renderizarFilas(llamadas);
+    };
+
+    cargarLlamadas();
 }
