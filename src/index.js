@@ -1,9 +1,9 @@
 const env = require('./config/env');
 const express = require('express');
-const { startScheduler } = require('./schedulers');
 const { startDispatcher } = require('./schedulers/callDispatcher');
 const { buildPostCallRouter } = require('./postcall/router');
 const { buildDirectCallRouter } = require('./directcall/router');
+const { buildSchedulerRouter } = require('./schedulers/router'); // nuevo
 
 async function main() {
     try {
@@ -11,8 +11,8 @@ async function main() {
         app.use(express.json({ limit: '1mb' }));
         app.use('/webhooks', buildPostCallRouter());
         app.use('/calls', buildDirectCallRouter());
+        app.use('/admin', buildSchedulerRouter());
 
-        startScheduler({ limit: 1000, scheduleStartup: true });
         startDispatcher({
             intervalMs: env.DISPATCH_INTERVAL_MS,
             maxConcurrent: env.DISPATCH_MAX_CONCURRENT,
