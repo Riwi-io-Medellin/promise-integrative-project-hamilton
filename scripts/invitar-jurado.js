@@ -1,4 +1,18 @@
-// scripts/invitar-jurado.js
+/**
+ * scripts/invitar-jurado.js
+ *
+ * Busca un jurado/candidato en la BD y envía el payload con la estructura exacta:
+ * {
+ *   "candidato_id": "...",
+ *   "telefono": "+57...",
+ *   "nombre": "...",
+ *   "motivo": "PRESENTACION_PROYECTOS",
+ *   "ciudad": "Medellín",
+ *   "lista_horarios": "Lunes 16 de marzo a las 10:00 AM",
+ *   "eventos_disponibles": [...],
+ *   "nota_previa": "Invitación_Especial"
+ * }
+ */
 'use strict';
 
 require('dotenv').config();
@@ -7,22 +21,32 @@ const https = require('https');
 const pool = require('../src/db/pool');
 
 const CHATBOT_WEBHOOK_URL = process.env.CHATBOT_WEBHOOK_URL || 'http://localhost:4000/webhook/initiate';
-const EVENTO_JURADOS_ID = 5; // <--- ID DEL EVENTO ("PRESENTACION_PROYECTOS")
+const EVENTO_JURADOS_ID = 5; // <--- ID DEL EVENTO DE PRESENTACIÓN
 
-// Helper para formato de fecha
+// Helper para formato de fecha: "Lunes 16 de marzo a las 10:00 AM"
 const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
 function formatChatbotDate(fechaHoraIso) {
     const cleaned  = String(fechaHoraIso).replace('+00:00', '').replace('Z', '');
     const fecha    = new Date(cleaned);
+
     const diaNombre = DAYS_ES[fecha.getDay()];
+    // Capitalizar primera letra del día
+    const diaCap    = diaNombre.charAt(0).toUpperCase() + diaNombre.slice(1);
+
+    const diaNum    = fecha.getDate();
+    const mesNombre = MONTHS_ES[fecha.getMonth()];
+
     const horas     = fecha.getHours();
     const minutos   = String(fecha.getMinutes()).padStart(2, '0');
     const ampm      = horas >= 12 ? 'PM' : 'AM';
     const hora12    = horas % 12 || 12;
 
+    const legible = `${diaCap} ${diaNum} de ${mesNombre} a las ${hora12}:${minutos} ${ampm}`;
+
     return {
-        simple: `${diaNombre} ${hora12}:${minutos} ${ampm}`,
-        full:   `${diaNombre} a las ${hora12}:${minutos} ${ampm}`
+        legible: legible
     };
 }
 
@@ -33,11 +57,6 @@ async function main() {
         console.error('❌ Error: Debes proporcionar el UUID del jurado/candidato.');
         console.error('Uso: node scripts/invitar-jurado.js <UUID>');
         process.exit(1);
-    }
-
-    // Validar webhook
-    if (!process.env.CHATBOT_WEBHOOK_URL) {
-        console.warn('⚠️ Advertencia: CHATBOT_WEBHOOK_URL no está en .env. Usando default localhost.');
     }
 
     try {
@@ -65,44 +84,44 @@ async function main() {
         const evento = eventRes.rows[0];
         if (!evento) throw new Error(`El evento ID ${EVENTO_JURADOS_ID} no existe en la BD.`);
 
-        // 3. Crear invitación forzada
         const fechaFmt = formatChatbotDate(evento.fecha_hora);
-        const lista_horarios = `1) ${fechaFmt.simple}`;
 
-        // Mensaje especial
-        const mensaje = `Hola ${candidate.nombre}, te invitamos cordialmente a la presentación de nuestro Proyecto Integrador SofIA. \n\n` +
-            `Horario disponible:\n${lista_horarios}\n\n` +
-            `Por favor responde con "1" para confirmar asistencia.`;
-
+        // 3. Crear Payload con la estructura "EXACTAMENTE ASI"
         const payload = {
             candidato_id: candidate.id,
-            telefono: candidate.telefono ? candidate.telefono.replace('+', '') : '',
+            telefono: candidate.telefono, // Enviamos el teléfono tal cual viene de BD (con + si lo tiene)
             nombre: candidate.nombre,
-            motivo: evento.tipo_reunion, // Usamos el tipo real del evento (ej: PRESENTACION_PROYECTOS)
+            motivo: "PRESENTACION_PROYECTOS",
             ciudad: candidate.ciudad || 'Medellín',
-            lista_horarios: lista_horarios,
-            eventos_disponibles: [{
-                fecha_legible: fechaFmt.full,
-                evento_id: evento.id
-            }],
-            mensaje: mensaje
+            lista_horarios: fechaFmt.legible,
+            eventos_disponibles: [
+                {
+                    fecha_legible: fechaFmt.legible,
+                    evento_id: evento.id
+                }
+            ],
+            nota_previa: "Invitación_Especial"
         };
 
         // 4. Enviar
         console.log(`🚀 Enviando invitación a ${candidate.nombre}...`);
+        console.log(`📦 Payload a enviar:\n${JSON.stringify(payload, null, 2)}`);
         console.log(`📡 URL: ${CHATBOT_WEBHOOK_URL}`);
 
         const agent = new https.Agent({ rejectUnauthorized: false });
         await axios.post(CHATBOT_WEBHOOK_URL, payload, {
             httpsAgent: agent,
-            headers: { 'ngrok-skip-browser-warning': 'true' }
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            }
         });
 
-        console.log('✅ Invitación enviada con éxito.');
+        console.log('\n✅ Invitación enviada con éxito.');
 
     } catch (err) {
-        console.error('❌ Error:', err.message);
-        if (err.response) console.error('Detalle HTTP:', err.response.data);
+        console.error('\n❌ Error:', err.message);
+        if (err.response) console.error('🔴 Detalle HTTP:', err.response.data);
     } finally {
         await pool.end();
     }
