@@ -2,7 +2,7 @@ import os
 import httpx
 from fastapi import FastAPI, Request
 from models import SolicitudChat
-from ai_agent import procesar_mensaje, generar_prompt_chat, sesiones_activas
+from ai_agent import procesar_mensaje, generar_prompt_chat, generar_prompt_faq, sesiones_activas
 from whatsapp_utils import enviar_mensaje_whatsapp
 from dotenv import load_dotenv
 
@@ -20,6 +20,7 @@ async def iniciar_chat(solicitud: SolicitudChat):
     contexto = solicitud.model_dump()
     sesiones_activas[telefono] = {
         "candidato_id": solicitud.candidato_id,
+        "es_faq": False,  # Marcador: esto NO es orgánico, es agendamiento oficial
         "contexto_original": contexto,
         "historial": [
             {"role": "system", "content": generar_prompt_chat(contexto)}
@@ -41,57 +42,93 @@ async def iniciar_chat(solicitud: SolicitudChat):
 @app.post("/webhook")
 async def recibir_mensaje_whatsapp(request: Request):
     """Recibe los mensajes de texto que el usuario envía por WhatsApp (Vía Evolution API)."""
-    body = await request.json()
+    try:
+        body = await request.json()
 
-    if body.get("event") == "messages.upsert":
+        # Verificar evento de mensajes
+        evento = body.get("event", "")
+        if evento not in ["messages.upsert", "MESSAGES_UPSERT"]:
+            return {"status": "ignorado", "reason": "No es un evento de mensaje"}
+
+        # Extraer estructura del mensaje
         data = body.get("data", {})
+        msg_data = data.get("message", data) if "key" not in data else data
 
-        # Ignorar mensajes propios
-        if data.get("key", {}).get("fromMe"):
-            return {"status": "ignorado"}
+        key = msg_data.get("key", {})
+        from_me = key.get("fromMe", False)
+        remote_jid = key.get("remoteJid", "")
 
-        telefono = data.get("key", {}).get("remoteJid", "").split("@")[0]
-        texto = data.get("message", {}).get("conversation") or data.get("message", {}).get("extendedTextMessage",
-                                                                                           {}).get("text", "")
+        # Ignorar mensajes propios o de grupos
+        if from_me or "@g.us" in remote_jid or "status@broadcast" in remote_jid:
+            return {"status": "ignorado", "reason": "Mensaje del bot o irrelevante"}
 
-        if not texto or telefono not in sesiones_activas:
-            return {"status": "ignorado o sin sesión activa"}
+        telefono = remote_jid.split("@")[0]
 
-        try:
-            # Mandar a procesar a la IA
-            resultado = await procesar_mensaje(telefono, texto)
+        # Extraer texto
+        message_content = msg_data.get("message", {})
+        texto = ""
+        if "conversation" in message_content:
+            texto = message_content["conversation"]
+        elif "extendedTextMessage" in message_content:
+            texto = message_content["extendedTextMessage"].get("text", "")
 
-            # --- NUEVO: Imprimir TODO lo que decidió la IA en consola para debug ---
-            print("\n" + "=" * 40)
-            print(f"📩 MENSAJE DEL USUARIO: {texto}")
-            print(f"🤖 DECISIÓN DE LA IA:")
-            print(resultado.model_dump_json(indent=2))
-            print("=" * 40 + "\n")
+        if not texto:
+            return {"status": "ignorado", "reason": "Sin texto"}
 
-            # Responder al usuario por WhatsApp
-            await enviar_mensaje_whatsapp(telefono, resultado.respuesta_ia_para_usuario)
+        # --- SISTEMA DE DESPERTAR AUTOMÁTICO (MODO FAQ) ---
+        if telefono not in sesiones_activas:
+            print(f"\n⚠️ El usuario {telefono} inició el chat orgánicamente. Modo FAQ activado.")
 
-            # Si la IA cerró la negociación, enviar el resultado a Sofía Calls
-            if resultado.estado_conversacion == "FINALIZADA":
+            sesiones_activas[telefono] = {
+                "candidato_id": "contacto_organico_faq",
+                "es_faq": True,  # Etiqueta clave para no enviar esto a la base de datos
+                "historial": [
+                    {"role": "system", "content": generar_prompt_faq()}  # Obtenemos el prompt desde ai_agent.py
+                ]
+            }
+
+        # --- PROCESAMIENTO DE LA IA ---
+        resultado = await procesar_mensaje(telefono, texto)
+
+        print("\n" + "=" * 40)
+        print(f"📩 MENSAJE DEL USUARIO ({telefono}): {texto}")
+        print(f"🤖 DECISIÓN DE LA IA:")
+        print(resultado.model_dump_json(indent=2))
+        print("=" * 40 + "\n")
+
+        # Responder al usuario por WhatsApp
+        await enviar_mensaje_whatsapp(telefono, resultado.respuesta_ia_para_usuario)
+
+        # --- GESTIÓN DE CIERRE DE CONVERSACIÓN ---
+        if resultado.estado_conversacion == "FINALIZADA":
+
+            # Si NO es FAQ (fue un chat iniciado por Sofía Calls para agendar)
+            if not sesiones_activas[telefono].get("es_faq", False):
                 payload_final = {
-                    "candidato_id": sesiones_activas[telefono]["candidato_id"],
+                    "candidato_id": sesiones_activas[telefono].get("candidato_id"),
                     "telefono": telefono,
                     "resultado_agenda": resultado.resultado_agenda,
                     "evento_id": resultado.evento_id,
                     "nota": resultado.nota_para_equipo
                 }
 
-                print(f"✅ CHAT FINALIZADO CORRECTAMENTE. Payload a enviar a la BD: {payload_final}")
+                print(f"✅ CHAT DE AGENDAMIENTO FINALIZADO. Payload a enviar a la BD: {payload_final}")
 
-                # Enviar al backend de Sofía Calls
-                if URL_SISTEMA_CENTRAL:
-                    async with httpx.AsyncClient() as client:
-                        await client.post(URL_SISTEMA_CENTRAL, json=payload_final)
+                if URL_SISTEMA_CENTRAL and URL_SISTEMA_CENTRAL.startswith("http"):
+                    try:
+                        async with httpx.AsyncClient() as client_http:
+                            await client_http.post(URL_SISTEMA_CENTRAL, json=payload_final)
+                    except Exception as e:
+                        print(f"❌ Error enviando webhook al backend: {e}")
+            else:
+                # Si ERA un chat orgánico/FAQ, no enviamos nada a la base de datos
+                print(f"✅ CHAT INFORMATIVO FINALIZADO orgánicamente. (No se envía a BD).")
 
-                # Liberar memoria
-                del sesiones_activas[telefono]
+            # En ambos casos, borramos la sesión
+            del sesiones_activas[telefono]
 
-        except Exception as e:
-            print(f"Error procesando mensaje: {e}")
+        return {"status": "ok"}
 
-    return {"status": "ok"}
+    except Exception as e:
+        print(f"❌ Error procesando mensaje del webhook: {e}")
+        return {"status": "error", "message": str(e)}
