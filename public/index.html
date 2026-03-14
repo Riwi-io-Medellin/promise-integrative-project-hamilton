@@ -4,318 +4,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SofIA | Dev Dashboard</title>
-    <!-- Tipografía moderna estilo RIWI -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            /* Paleta inspirada en RIWI */
-            --bg-dark: #09090b;
-            --bg-panel: #18181b;
-            --bg-card: #27272a;
-            --riwi-purple: #7c3aed;
-            --riwi-purple-hover: #6d28d9;
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
-            --accent-green: #10b981;
-            --accent-pink: #ec4899;
-            --accent-blue: #3b82f6;
-            --accent-orange: #f59e0b;
-            --border-color: #3f3f46;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            gap: 25px;
-            height: 100vh;
-            box-sizing: border-box;
-            overflow: hidden; /* Evita scroll global */
-        }
-
-        /* Barra Lateral (Pasos) */
-        .sidebar {
-            width: 380px;
-            background: var(--bg-panel);
-            padding: 25px;
-            border-radius: 16px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-
-        /* Área Principal (Consola) */
-        .main {
-            flex: 1;
-            background: var(--bg-panel);
-            padding: 25px;
-            border-radius: 16px;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border-color);
-            overflow: hidden; /* Restringe el tamaño de la terminal */
-        }
-
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 0;
-            margin-bottom: 25px;
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .header-title span { color: var(--riwi-purple); }
-
-        /* Estilo de las tarjetas de pasos */
-        .step {
-            background: var(--bg-card);
-            padding: 18px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            border-left: 5px solid var(--riwi-purple);
-            transition: transform 0.2s;
-        }
-
-        .step:hover { transform: translateX(4px); }
-
-        .step h3 {
-            margin: 0 0 12px 0;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Botones estilo RIWI */
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--riwi-purple);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s ease;
-            margin-top: 5px;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
-        }
-
-        button:hover {
-            background-color: var(--riwi-purple-hover);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .btn-ngrok { background-color: var(--accent-pink); box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2); }
-        .btn-ngrok:hover { background-color: #db2777; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
-
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            box-shadow: none;
-        }
-        .btn-outline:hover {
-            background-color: var(--bg-card);
-            color: white;
-            border-color: var(--text-muted);
-        }
-
-        /* Inputs */
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: #1e1e20;
-            color: #fff;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.85rem;
-            box-sizing: border-box;
-            transition: border 0.3s;
-        }
-        input[type="text"]:focus { outline: none; border-color: var(--riwi-purple); }
-
-        /* Consola Hackerman - Scroll y formato de tablas corregido */
-        #terminal {
-            flex: 1;
-            background: #000;
-            color: var(--accent-green);
-            padding: 20px;
-            border-radius: 12px;
-            overflow: auto;
-            font-family: 'Fira Code', monospace;
-            white-space: pre;
-            font-size: 0.85rem;
-            border: 1px solid #111;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-            line-height: 1.5;
-        }
-
-        .loader {
-            display: none;
-            color: var(--riwi-purple);
-            font-size: 0.9em;
-            margin-bottom: 15px;
-            font-weight: 600;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-
-        .wait-text {
-            color: var(--accent-green);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-align: center;
-            margin: 0;
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-panel); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--riwi-purple); }
-    </style>
+    <title>SofIA | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="sidebar">
-    <h2 class="header-title">⚡ SofIA <span>DevSpace</span></h2>
-
-    <div class="step" style="border-left-color: var(--accent-pink);">
-        <h3>1. Conexión Externa (Ngrok)</h3>
-        <button class="btn-ngrok" onclick="startNgrok()">🌐 Iniciar Túnel Ngrok</button>
+<!-- BARRA LATERAL -->
+<aside class="sidebar">
+    <div class="brand">
+        <div class="logo"></div>
+        <div>
+            <h1 class="brand-title">SofIA</h1>
+            <p class="brand-subtitle">RIWICALLS AI</p>
+        </div>
     </div>
 
-    <div class="step">
-        <h3>2. Entorno de Prueba</h3>
-        <button onclick="runScript('reset-maryhug.js')">🔄 Resetear Candidato (Maryhug)</button>
+    <div class="sidebar-scroll">
+        <nav class="nav-menu">
+
+            <p class="nav-section">🌐 RED Y CONEXIÓN</p>
+            <a href="#" class="nav-item" onclick="showView('view-ngrok', this)">📡 Iniciar Ngrok</a>
+            <a href="#" class="nav-item" onclick="showView('view-diag-red', this)">🩺 Diagnóstico de Red</a>
+
+            <p class="nav-section mt-4">🤖 CHATBOT Y FLUJO</p>
+            <a href="#" class="nav-item" onclick="showView('view-bot-trigger', this)">🚀 Trigger Masivo Chatbot</a>
+            <a href="#" class="nav-item" onclick="showView('view-bot-payload', this)">👀 Ver JSON del Candidato</a>
+            <!-- NUEVO BOTÓN CHECK CANDIDATE -->
+            <a href="#" class="nav-item" onclick="showView('view-check-cand', this)">🗂️ Ver Estado Candidatos</a>
+
+            <p class="nav-section mt-4">🗄️ BASE DE DATOS</p>
+            <!-- NUEVO BOTÓN RESET CANDIDATO -->
+            <a href="#" class="nav-item" onclick="showView('view-reset-cand', this)">👤 Preparar Candidato (9 intentos)</a>
+
+            <a href="#" class="nav-item" onclick="showView('view-db-check', this)">✅ Verificar Conexión</a>
+            <a href="#" class="nav-item" onclick="showView('view-db-fill', this)">📥 Llenar Cola (Simular)</a>
+            <a href="#" class="nav-item" onclick="showView('view-db-reset', this)">🔄 Limpiar Trabados (EN_CURSO)</a>
+            <a href="#" class="nav-item danger-text" onclick="showView('view-db-full', this)">⚠️ Borrado Total (Reinicio Día)</a>
+
+            <p class="nav-section mt-4">🧪 PRUEBAS Y DIAGNÓSTICO</p>
+            <a href="#" class="nav-item" onclick="showView('view-test-direct', this)">✉️ Forzar Chatbot Directo</a>
+            <a href="#" class="nav-item" onclick="showView('view-test-http', this)">🌐 Prueba HTTP (Ruta Local)</a>
+            <a href="#" class="nav-item" onclick="showView('view-test-scenarios', this)">🎭 Simular Escenarios de Chat</a>
+            <a href="#" class="nav-item" onclick="showView('view-test-webhook', this)">📥 Simular Webhook de Respuesta</a>
+        </nav>
     </div>
+</aside>
 
-    <div class="step">
-        <h3>3. Validación de Webhooks</h3>
-        <input type="text" id="ngrok-url" placeholder="Ej: https://a1b2.ngrok-free.app">
-        <button onclick="runScript('test-ngrok.js', document.getElementById('ngrok-url').value)">📡 Probar Conexión Ngrok</button>
+<!-- ÁREA PRINCIPAL -->
+<main class="main-content">
+    <header class="topbar">
+        <h2 class="page-title">Panel de Control de Scripts</h2>
+        <div class="user-profile"><span>Agente: SofIA Admin</span><div class="avatar">S</div></div>
+    </header>
+
+    <div class="dashboard-layout">
+        <div id="views-container">
+
+            <div id="view-welcome" class="info-card active-view">
+                <div class="card-header"><div class="icon-box bg-slate-light">👋</div><div><h3>Bienvenida al Panel</h3><p class="card-desc">Selecciona un script de la barra lateral izquierda para ejecutarlo.</p></div></div>
+            </div>
+
+            <!-- NGROK & RED -->
+            <div id="view-ngrok" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">📡</div><div><h3>Paso 2: Iniciar Túnel Ngrok</h3><p class="card-desc">Ejecuta: npm run tunnel</p></div></div>
+                <button class="btn btn-primary" onclick="startNgrok()">Iniciar Ngrok</button>
+            </div>
+            <div id="view-diag-red" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">🩺</div><div><h3>Diagnóstico de Red</h3><p class="card-desc">Ejecuta: node scripts/diagnostico-red.js</p></div></div>
+                <button class="btn btn-primary" onclick="runScript('diagnostico-red.js')">Ejecutar Diagnóstico</button>
+            </div>
+
+            <!-- CHATBOT & FLUJO -->
+            <div id="view-bot-trigger" class="info-card">
+                <div class="card-header"><div class="icon-box bg-mint-light">🚀</div><div><h3>Paso 3: Trigger Masivo Chatbot</h3><p class="card-desc">Busca a todos los que tienen 9+ intentos y les dispara el JSON.</p></div></div>
+                <button class="btn btn-primary bg-mint text-dark" onclick="runScript('trigger-masivo-chatbot.js')">Disparar Chatbots</button>
+            </div>
+
+            <div id="view-bot-payload" class="info-card">
+                <div class="card-header"><div class="icon-box bg-mint-light">👀</div><div><h3>Ver JSON de Candidato</h3><p class="card-desc">Muestra los datos que se enviarán sin dispararlos.</p></div></div>
+                <div class="flex-row">
+                    <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">1. Cargar Usuarios</button>
+                    <select id="select-payload" class="form-control"><option value="">2. Selecciona un candidato...</option></select>
+                    <button class="btn btn-primary bg-mint text-dark" style="flex: 0 0 auto;" onclick="runScriptWithSelect('ver-payload-candidato.js', 'select-payload')">3. Ver JSON</button>
+                </div>
+            </div>
+
+            <div id="view-check-cand" class="info-card">
+                <div class="card-header"><div class="icon-box bg-mint-light">🗂️</div><div><h3>Paso 5: Ver Estado de Candidatos (Check DB)</h3><p class="card-desc">Revisa si la Base de Datos se actualizó después de que el candidato respondió por WhatsApp.</p></div></div>
+                <button class="btn btn-primary" onclick="runScript('check-candidate.js')">Revisar Estados Actuales</button>
+            </div>
+
+            <!-- BASE DE DATOS -->
+            <div id="view-reset-cand" class="info-card">
+                <div class="card-header"><div class="icon-box bg-yellow-light">👤</div><div><h3>Paso 1: Preparar Candidato</h3><p class="card-desc">Pone al candidato en estado PENDIENTE y le da 9 intentos fallidos para que el Trigger Masivo lo detecte.</p></div></div>
+                <div class="flex-row">
+                    <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">1. Cargar Usuarios</button>
+                    <select id="select-reset-cand" class="form-control"><option value="">2. Selecciona a quién preparar...</option></select>
+                    <button class="btn btn-primary" style="flex: 0 0 auto;" onclick="runScriptWithSelect('reset-candidato.js', 'select-reset-cand')">3. Preparar Candidato</button>
+                </div>
+            </div>
+
+            <div id="view-db-check" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">✅</div><div><h3>Verificar Conexión BD</h3></div></div><button class="btn btn-primary" onclick="runScript('test-db-connection.js')">Verificar</button></div>
+            <div id="view-db-fill" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">📥</div><div><h3>Llenar Cola</h3></div></div><button class="btn btn-primary" onclick="runScript('llenar-cola.js')">Llenar Cola</button></div>
+            <div id="view-db-reset" class="info-card"><div class="card-header"><div class="icon-box bg-yellow-light">🔄</div><div><h3>Limpiar Llamadas Trabadas (EN_CURSO)</h3></div></div><button class="btn btn-primary" onclick="runScript('resetear-bd.js')">Limpiar Rápidamente</button></div>
+
+            <!-- AQUÍ ESTÁ EL BOTÓN DE BORRADO TOTAL ARREGLADO -->
+            <div id="view-db-full" class="info-card">
+                <div class="card-header"><div class="icon-box" style="background: rgba(254,101,79,0.1);">⚠️</div><div><h3>Borrado Total del Historial</h3><p class="card-desc" style="color: #FE654F;">Ejecuta "resetear-bd.js --total". Borra la cola de HOY y devuelve a TODOS a PENDIENTE 0 intentos.</p></div></div>
+                <button class="btn btn-danger" onclick="runScript('resetear-bd.js', '', '--total')">⚠️ Ejecutar Borrado Total</button>
+            </div>
+
+            <!-- PRUEBAS -->
+            <div id="view-test-direct" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light">✉️</div><div><h3>Forzar Chatbot a Usuario</h3></div></div>
+                <div class="flex-row">
+                    <button class="btn btn-outline" style="flex: 0 0 auto;" onclick="loadUsers()">Cargar Usuarios</button>
+                    <select id="select-test-direct" class="form-control"><option value="">Selecciona...</option></select>
+                    <button class="btn btn-primary" style="flex: 0 0 auto;" onclick="runScriptWithSelect('test-chatbot-directo.js', 'select-test-direct')">Forzar Envío</button>
+                </div>
+            </div>
+
+            <div id="view-test-http" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">🌐</div><div><h3>Prueba HTTP API Local</h3></div></div><button class="btn btn-primary" onclick="runScript('test-chatbot.js')">Probar Ruta</button></div>
+            <div id="view-test-scenarios" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">🎭</div><div><h3>Simular Escenarios</h3></div></div><button class="btn btn-primary" onclick="runScript('test-webhook-escenarios.js')">Simular</button></div>
+            <div id="view-test-webhook" class="info-card"><div class="card-header"><div class="icon-box bg-slate-light">📥</div><div><h3>Simular Webhook de Respuesta</h3></div></div><button class="btn btn-primary" onclick="runScript('test-webhook-respuesta.js')">Simular Respuesta</button></div>
+
+        </div>
+
+        <!-- TERMINAL -->
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="terminal-title"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span> Terminal de Salida</div>
+                <button class="btn-text" onclick="clearTerminal()">🧹 Limpiar</button>
+            </div>
+            <div id="loader" class="loader">⚙️ Ejecutando...</div>
+            <div id="terminal" class="terminal-body">> SofIA Panel SPA Inicializado.
+                > Selecciona un script en el menú lateral.</div>
+        </div>
     </div>
-
-    <div class="step">
-        <h3>4. Ejecución del Bot</h3>
-        <button onclick="runScript('trigger-masivo-chatbot.js')">🤖 Disparar Chatbot Masivo</button>
-    </div>
-
-    <div class="step" style="border-left-color: var(--accent-green); background: rgba(16, 185, 129, 0.05);">
-        <p class="wait-text">⏳ Espera a que Maryhug responda en WhatsApp (Logs en la terminal)</p>
-    </div>
-
-    <div class="step">
-        <h3>5. Verificación de Datos</h3>
-        <button onclick="runScript('check-candidate.js')">🗄️ Consultar Base de Datos</button>
-    </div>
-
-    <!-- NUEVA SECCIÓN: Gestión de Base de Datos -->
-    <div class="step" style="border-left-color: var(--accent-blue);">
-        <h3>🛠️ Utilidades de BD</h3>
-        <button class="btn-outline" style="margin-bottom: 8px; color: var(--text-main);" onclick="runScript('test-db-connection.js')">
-            🔌 Probar Conexión (Health)
-        </button>
-        <button class="btn-outline" style="color: var(--text-main);" onclick="runScript('list-events.js')">
-            📅 Listar Eventos Disponibles
-        </button>
-    </div>
-
-    <!-- NUEVA SECCIÓN: Llamadas Automáticas -->
-    <div class="step" style="border-left-color: var(--accent-orange);">
-        <h3>📞 Motor de Llamadas</h3>
-        <button onclick="runScript('llenar-cola.js')" style="background-color: var(--accent-orange); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);">
-            📥 Llenar Cola de Llamadas
-        </button>
-    </div>
-
-    <button class="btn-outline" onclick="clearTerminal()">🧹 Limpiar Consola</button>
-</div>
-
-<div class="main">
-    <h2 class="header-title" style="margin-bottom: 15px; font-size: 1.2rem;">Terminal <span>Output</span></h2>
-    <div id="loader" class="loader">⚙️ Ejecutando proceso en el backend...</div>
-    <div id="terminal">> SofIA Environment Inicializado.
-        > Panel de control listo para ejecutar pruebas...</div>
-</div>
-
-<script>
-    const terminal = document.getElementById('terminal');
-    const loader = document.getElementById('loader');
-
-    function appendToTerminal(text) {
-        const time = new Date().toLocaleTimeString();
-        terminal.innerHTML += `\n\n[${time}] > ${text}`;
-        terminal.scrollTop = terminal.scrollHeight;
-        terminal.scrollLeft = 0; // Asegura que las tablas inicien alineadas a la izquierda
-    }
-
-    function clearTerminal() {
-        terminal.innerHTML = `> Terminal reiniciada.`;
-    }
-
-    async function startNgrok() {
-        loader.style.display = 'block';
-        try {
-            const res = await fetch('/api/admin/start-ngrok', { method: 'POST' });
-            const data = await res.json();
-            appendToTerminal(data.output);
-
-            if (data.url) {
-                const inputUrl = document.getElementById('ngrok-url');
-                inputUrl.value = data.url;
-                inputUrl.style.borderColor = 'var(--accent-pink)';
-                setTimeout(() => inputUrl.style.borderColor = 'var(--border-color)', 1500);
-            }
-        } catch (error) {
-            appendToTerminal(`Error crítico: ${error.message}`);
-        } finally {
-            loader.style.display = 'none';
-        }
-    }
-
-    async function runScript(scriptName, arg = '') {
-        if (scriptName === 'test-ngrok.js' && !arg) {
-            alert('Falta la URL. Inicia Ngrok primero o pégala manualmente.');
-            return;
-        }
-
-        loader.style.display = 'block';
-        appendToTerminal(`Ejecutando script: ${scriptName} ${arg ? arg : ''}...`);
-        try {
-            const res = await fetch('/api/admin/run-script', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scriptName, arg })
-            });
-            const data = await res.json();
-            appendToTerminal(data.output);
-        } catch (error) {
-            appendToTerminal(`Error de red: ${error.message}`);
-        } finally {
-            loader.style.display = 'none';
-        }
-    }
-</script>
+</main>
+<script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,69 @@
+/* Archivo: public/style.css */
+
+:root {
+    --space-cadet: #181E4B; --slate-blue: #6B5CFF; --slate-blue-hover: #5A4CE0;
+    --seasalt: #F9FAFC; --clear-white: #FFFFFF; --mint: #5ACCA4;
+    --arylide-yellow: #E6CA52; --tomato: #FE654F; --text-main: #333333;
+    --text-muted: #777777; --border-color: #E2E8F0; --terminal-bg: #111827;
+}
+
+body { font-family: 'Ubuntu', sans-serif; background-color: var(--seasalt); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar { width: 280px; background-color: var(--space-cadet); color: var(--clear-white); display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.1); }
+.brand { display: flex; align-items: center; gap: 12px; padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.logo { width: 24px; height: 24px; background-color: var(--mint); border-radius: 6px; }
+.brand-title { font-weight: 700; font-size: 1.2rem; margin: 0; }
+.brand-subtitle { font-weight: 400; font-size: 0.7rem; color: var(--mint); margin: 2px 0 0 0; letter-spacing: 1px; }
+
+.sidebar-scroll { flex: 1; overflow-y: auto; padding: 20px 0; }
+.nav-section { font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.4); margin: 0 0 8px 24px; letter-spacing: 1px; }
+.mt-4 { margin-top: 24px; }
+
+.nav-item { display: block; color: #CBD5E1; text-decoration: none; padding: 10px 24px; font-size: 0.85rem; transition: all 0.2s; border-left: 3px solid transparent; }
+.nav-item:hover { background-color: rgba(255,255,255,0.05); color: white; }
+.nav-item.active { background-color: rgba(107,92,255,0.15); color: white; border-left-color: var(--mint); font-weight: 500; }
+.danger-text { color: #FF8A80; } .danger-text:hover { color: var(--tomato); }
+
+/* MAIN CONTENT */
+.main-content { flex: 1; display: flex; flex-direction: column; padding: 0 32px 32px 32px; overflow: hidden; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; flex-shrink: 0; }
+.page-title { font-weight: 700; font-size: 1.3rem; color: var(--space-cadet); margin: 0; }
+.user-profile { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500; color: var(--text-muted); }
+.avatar { width: 36px; height: 36px; background-color: var(--slate-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+.dashboard-layout { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+
+/* SPA CARDS (Ocultas por defecto) */
+.info-card { display: none; background: var(--clear-white); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--border-color); flex-shrink: 0; animation: fadeIn 0.3s ease; }
+.info-card.active-view { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+.card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.icon-box { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.bg-slate-light { background: rgba(107, 92, 255, 0.1); } .bg-mint-light { background: rgba(90, 204, 164, 0.15); } .bg-yellow-light { background: rgba(230, 202, 82, 0.2); }
+.info-card h3 { margin: 0 0 6px 0; font-size: 1.1rem; color: var(--space-cadet); font-weight: 700; }
+.card-desc { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+.flex-row { display: flex; gap: 12px; }
+.form-control { flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-family: 'Ubuntu', sans-serif; font-size: 0.85rem; color: var(--text-main); outline: none; }
+.form-control:focus { border-color: var(--slate-blue); }
+
+.btn { display: inline-flex; justify-content: center; align-items: center; padding: 10px 20px; font-family: 'Ubuntu', sans-serif; font-weight: 500; font-size: 0.85rem; border-radius: 6px; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background-color: var(--slate-blue); color: white; } .btn-primary:hover { background-color: var(--slate-blue-hover); transform: translateY(-1px); }
+.btn-danger { background-color: var(--tomato); color: white; font-weight: 700; } .btn-danger:hover { filter: brightness(0.9); }
+.btn-outline { background-color: transparent; border: 1px solid var(--border-color); color: var(--space-cadet); } .btn-outline:hover { border-color: var(--slate-blue); color: var(--slate-blue); }
+.bg-mint { background-color: var(--mint) !important; } .text-dark { color: var(--space-cadet) !important; font-weight: 700; }
+
+/* TERMINAL */
+.terminal-container { flex: 1; background: var(--terminal-bg); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #1F2937; }
+.terminal-header { background: #1F2937; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
+.terminal-title { display: flex; align-items: center; gap: 8px; color: #9CA3AF; font-size: 0.8rem; font-weight: 500; }
+.dot { width: 10px; height: 10px; border-radius: 50%; } .dot.red { background: #EF4444; } .dot.yellow { background: #F59E0B; } .dot.green { background: #10B981; }
+.btn-text { background: none; border: none; color: #9CA3AF; cursor: pointer; font-size: 0.8rem; font-family: 'Ubuntu', sans-serif; font-weight: 500; } .btn-text:hover { color: white; }
+
+/* Fuente un poco más pequeña (0.8rem) para mejor estructura */
+.terminal-body { flex: 1; padding: 20px; color: #A7F3D0; font-family: 'Fira Code', monospace; font-size: 0.8rem; overflow: auto; white-space: pre; line-height: 1.5; }
+.loader { display: none; color: var(--arylide-yellow); font-size: 0.8rem; padding: 10px 20px; font-weight: 500; font-family: 'Fira Code', monospace; border-bottom: 1px solid #374151; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: var(--slate-blue); }

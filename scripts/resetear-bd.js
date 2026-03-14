@@ -5,10 +5,8 @@
  *
  * Modos:
  *   node scripts/resetear-bd.js            → limpia sólo lo que está trabado (EN_CURSO)
- *   node scripts/resetear-bd.js --total    → borra TODAS las llamadas y cola del día,
+ *   node scripts/resetear-bd.js --total    → borra TODAS las llamadas y cola (sin importar fecha),
  *                                            resetea candidatos a PENDIENTE
- *
- * Usa --total cuando quieras simular que el día acaba de empezar.
  */
 'use strict';
 
@@ -24,24 +22,31 @@ async function run() {
 
   // ── IDs necesarios ────────────────────────────────────────────────────────
   const { rows: rl } = await pool.query(
-    "SELECT id FROM public.resultados_llamada WHERE codigo IN ('EN_CURSO','NO_CONTESTA') ORDER BY codigo"
+      "SELECT id FROM public.resultados_llamada WHERE codigo IN ('EN_CURSO','NO_CONTESTA') ORDER BY codigo"
   );
+
+  // Si no encuentra los estados en la BD, evita que el script falle
+  if (rl.length === 0) {
+    console.error("❌ No se encontraron los estados EN_CURSO o NO_CONTESTA en la tabla resultados_llamada.");
+    process.exit(1);
+  }
+
   const ids = Object.fromEntries(rl.map(r => [r.codigo === 'EN_CURSO' ? 'enCurso' : 'noContesta', r.id]));
 
   if (TOTAL) {
-    // ── RESET TOTAL ────────────────────────────────────────────────────────
+    // ── RESET TOTAL (Aplica a TODO el historial) ──────────────────────────
 
-    // 1. Borrar cola de hoy
+    // 1. Borrar TODA la cola
     const { rowCount: cola } = await pool.query(
-      `DELETE FROM public.cola_llamadas WHERE fecha_programada = CURRENT_DATE`
+        `DELETE FROM public.cola_llamadas`
     );
-    console.log(`🗑  Cola de hoy borrada        : ${cola} item(s)`);
+    console.log(`🗑  Toda la cola borrada        : ${cola} item(s)`);
 
-    // 2. Borrar llamadas de hoy
+    // 2. Borrar TODAS las llamadas
     const { rowCount: llamadas } = await pool.query(
-      `DELETE FROM public.llamadas WHERE fecha_hora_llamada::date = CURRENT_DATE`
+        `DELETE FROM public.llamadas`
     );
-    console.log(`🗑  Llamadas de hoy borradas   : ${llamadas} registro(s)`);
+    console.log(`🗑  Todas las llamadas borradas : ${llamadas} registro(s)`);
 
     // 3. Resetear candidatos → PENDIENTE, intentos 0
     const { rowCount: cands } = await pool.query(`
@@ -60,7 +65,7 @@ async function run() {
     console.log(`✅ Candidatos reseteados       : ${cands} candidato(s) → PENDIENTE`);
 
   } else {
-    // ── LIMPIEZA RÁPIDA ────────────────────────────────────────────────────
+    // ── LIMPIEZA RÁPIDA (Solo libera los atascados) ──────────────────────
 
     // 1. Marcar llamadas EN_CURSO como NO_CONTESTA
     const { rowCount: ll } = await pool.query(`
@@ -71,7 +76,7 @@ async function run() {
     `, [ids.noContesta, ids.enCurso]);
     console.log(`✅ Llamadas EN_CURSO → NO_CONTESTA : ${ll} registro(s)`);
 
-    // 2. Liberar cola items EN_CURSO de hoy
+    // 2. Liberar cola items EN_CURSO (Solo de hoy, para no afectar otros días)
     const { rowCount: cl } = await pool.query(`
       UPDATE public.cola_llamadas
       SET estado = 'CANCELADA'
@@ -119,4 +124,3 @@ run().catch(err => {
   console.error('❌', err.message);
   process.exit(1);
 });
-

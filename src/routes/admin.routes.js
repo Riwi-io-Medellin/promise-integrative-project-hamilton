@@ -4,36 +4,42 @@ const router = express.Router();
 const { exec } = require('child_process');
 const ngrok = require('ngrok');
 
-// LISTA BLANCA: Solo tus scripts del flujo y utilidades del README
+// LISTA BLANCA ACTUALIZADA
 const ALLOWED_SCRIPTS = [
-    'reset-maryhug.js',
-    'test-ngrok.js',
+    'test-db-connection.js',
+    'resetear-bd.js',
+    'llenar-cola.js',
     'trigger-masivo-chatbot.js',
-    'check-candidate.js',
-    'list-events.js',          // Nuevo: Ver horarios disponibles en BD
-    'llenar-cola.js',          // Nuevo: Simular horarios para llamadas
-    'test-db-connection.js'    // Nuevo: Health check de Supabase
+    'ver-payload-candidato.js',
+    'diagnostico-red.js',
+    'test-chatbot-directo.js',
+    'test-chatbot.js',
+    'test-webhook-escenarios.js',
+    'test-webhook-respuesta.js',
+    'get-candidatos.js',
+    'check-candidate.js',      // <-- Agregado
+    'reset-candidato.js'       // <-- Nuevo en lugar de reset-maryhug
 ];
 
 // Endpoint para ejecutar scripts
 router.post('/run-script', (req, res) => {
-    const { scriptName, arg } = req.body;
+    const { scriptName, arg, flag } = req.body;
 
-    // Validación 1: Lista blanca
     if (!ALLOWED_SCRIPTS.includes(scriptName)) {
         return res.status(403).json({ output: `❌ Error: El script '${scriptName}' no está permitido.` });
     }
 
-    // Validación 2: Sanitización de argumentos (Buena práctica de seguridad)
-    // Evita inyección de comandos en consola
-    let safeArg = '';
-    if (arg) {
-        safeArg = arg.replace(/[;&|`$]/g, '');
-    }
+    // Limpiamos los argumentos por seguridad
+    let safeArg = arg ? arg.replace(/[;&|`$]/g, '') : '';
+    let safeFlag = flag === '--total' ? '--total' : '';
 
-    const command = `node scripts/${scriptName} ${safeArg}`.trim();
+    // CORRECCIÓN CRÍTICA: Construir el comando usando un arreglo para evitar que Node ignore el --total
+    const cmdParts = ['node', `scripts/${scriptName}`];
+    if (safeFlag) cmdParts.push(safeFlag);
+    if (safeArg) cmdParts.push(safeArg);
 
-    // Ejecuta el comando usando Node
+    const command = cmdParts.join(' ');
+
     exec(command, (error, stdout, stderr) => {
         if (error) {
             return res.status(500).json({ output: `⚠️ Error de ejecución:\n${stderr || error.message}` });
@@ -42,15 +48,12 @@ router.post('/run-script', (req, res) => {
     });
 });
 
-// Endpoint para despertar Ngrok desde el panel
+// ... el endpoint de ngrok sigue igual ...
 router.post('/start-ngrok', async (req, res) => {
     try {
         const port = process.env.PORT || 3000;
         const url = await ngrok.connect(port);
-        res.json({
-            output: `✅ Ngrok conectado exitosamente.\nURL: ${url}`,
-            url: url // Mandamos la URL pura para que el Front la copie automáticamente
-        });
+        res.json({ output: `✅ Ngrok conectado exitosamente.\nURL: ${url}`, url: url });
     } catch (err) {
         res.status(500).json({ output: `❌ Error al iniciar Ngrok:\n${err.message}` });
     }
