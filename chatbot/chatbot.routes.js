@@ -38,4 +38,20 @@ router.post('/trigger-manual', async (req, res) => {
   }
 });
 
+/**
+ * GET /preview/:candidato_id
+ * Endpoint de diagnóstico para VER el JSON que se enviaría al chatbot.
+ * NO envía nada, solo muestra la estructura generada.
+ */
+router.get('/preview/:candidato_id', async (req, res) => {
+  try {
+    const { candidato_id } = req.params;
+    const data = await chatbotService.gatherCandidateData(candidato_id);
+    res.json(data);
+  } catch (err) {
+    console.error('[ChatbotRoutes] Error en preview:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

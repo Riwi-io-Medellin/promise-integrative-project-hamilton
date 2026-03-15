@@ -14,7 +14,13 @@ async function main() {
         console.log('='.repeat(60));
 
         const res = await client.query(`
-            SELECT id, payload, recibido_en, procesado_exitosamente, error_log 
+            SELECT 
+                id, 
+                payload, 
+                -- Convertimos la fecha UTC de la BD a la hora de Colombia explícitamente y la formateamos como texto
+                to_char(recibido_en AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota', 'DD/MM/YYYY, HH12:MI:SS AM') as fecha_formateada,
+                procesado_exitosamente, 
+                error_log 
             FROM webhook_logs 
             ORDER BY recibido_en DESC 
             LIMIT 10
@@ -23,8 +29,11 @@ async function main() {
         if (res.rows.length === 0) {
             console.log('⚠️ No se encontraron logs. El webhook no ha sido llamado recientemente.');
         } else {
-            res.rows.forEach(row => {
-                console.log(`\n📅 [${row.recibido_en.toLocaleString()}] - ID: ${row.id}`);
+            // Invertimos el arreglo para que el log más reciente quede AL FINAL de la terminal
+            const logs = res.rows.reverse();
+
+            logs.forEach(row => {
+                console.log(`\n📅 [${row.fecha_formateada}] - ID: ${row.id}`);
                 console.log(`📦 PAYLOAD:`);
                 console.log(JSON.stringify(row.payload, null, 2));
                 if (row.error_log) {

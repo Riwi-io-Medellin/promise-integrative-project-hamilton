@@ -134,6 +134,7 @@ async function gatherCandidateData(candidatoId) {
 async function sendToChatbot(payload) {
   try {
     console.log(`[ChatbotService] Enviando datos de usuario ${payload.nombre} a ${CHATBOT_WEBHOOK_URL}...`);
+    console.log('[ChatbotService] Payload detallado:', JSON.stringify(payload, null, 2)); // LOG AGREGADO PARA DEBUG EN RENDER
     
     // Configurar agente HTTPS para evitar errores de certificado con ngrok/dev
     const agent = new https.Agent({  

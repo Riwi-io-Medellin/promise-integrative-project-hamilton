@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors'); // <-- Importar CORS
 const chatbotRoutes = require('../chatbot/chatbot.routes');
 const adminRoutes = require('./routes/admin.routes');
+const healthRoutes = require('./routes/health'); // <-- Importar Health check
 const path = require('path');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use((req, _res, next) => {
 });
 
 // ── Rutas ────────────────────────────────────
+app.use('/api/health', healthRoutes);   // Endpoint de estado
 app.use('/api/chatbot', chatbotRoutes); // Ruta principal del Bot
 app.use('/api/admin', adminRoutes);     // Panel de Control
 app.use(express.static(path.join(__dirname, '../public'))); // Frontend
