@@ -1,7 +1,7 @@
 import { initRevealAnimations } from "./ui/reveal.js";
 import { initPromiseVoiceWidget } from "./ui/widget.js";
 
-const PROMISE_ELEVENLABS_AGENT_ID = "agent_4501khbynht9ennvk32madk7k1jj";
+const PROMISE_ELEVENLABS_AGENT_ID = "agent_4501kksmbgj2fwnrzpkzjdk06bej";
 const THEME_KEY = "promise-theme";
 
 function initNavigation() {
@@ -77,6 +77,8 @@ export function initSharedExperience() {
   initRevealAnimations();
   initPromiseVoiceWidget({
     mode: import.meta.env.VITE_ELEVENLABS_MODE || "live",
-    agentId: import.meta.env.VITE_ELEVENLABS_AGENT_ID || PROMISE_ELEVENLABS_AGENT_ID
+    agentId: import.meta.env.VITE_ELEVENLABS_AGENT_ID || PROMISE_ELEVENLABS_AGENT_ID,
+    title: "Promi, agente asesor",
+    logoSrc: "./assets/brand/ISOLOGO-CLARO.png"
   });
 }
