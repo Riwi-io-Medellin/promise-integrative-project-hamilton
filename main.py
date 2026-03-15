@@ -2,7 +2,7 @@ import os
 import httpx
 from fastapi import FastAPI, Request
 from models import SolicitudChat
-from ai_agent import procesar_mensaje, generar_prompt_chat, generar_prompt_faq, sesiones_activas
+from ai_agent import procesar_mensaje, generar_prompt_chat, generar_prompt_faq, sesiones_activas, motivo_a_texto_legible
 from whatsapp_utils import enviar_mensaje_whatsapp
 from dotenv import load_dotenv
 
@@ -32,15 +32,17 @@ async def iniciar_chat(solicitud: SolicitudChat):
         ]
     }
 
+    motivo_legible = motivo_a_texto_legible(solicitud.motivo)
+
     # Lógica condicional para el mensaje inicial basado en el motivo del evento
     if solicitud.motivo == "PRESENTACION_PROYECTOS":
         primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía, el primer agente de Inteligencia Artificial creado por *Promise*.\n\nTe escribo para invitarte muy especialmente a nuestra presentación de proyectos ante jurados este *lunes a las 10:00 AM*. En Promise creamos agentes a medida para empresas que quieren dejar de perder tiempo en tareas repetitivas, multiplicando la capacidad operativa y devolviéndole el tiempo a las personas.\n\nMe encantaría verte allí y mostrarte lo que puedo hacer. ¿Tienes alguna pregunta sobre el evento o sobre nosotros? 🤖✨"
 
     elif solicitud.nota_previa == "Ocupado":
-        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Te escribo de nuevo porque en nuestra llamada anterior estabas ocupado. ¿Tienes un minuto ahora para continuar con tu proceso de beca? Tengo estos espacios para tu {solicitud.motivo}:\n\n{solicitud.lista_horarios}\n\n¿Te funciona alguno?"
+        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Te escribo de nuevo porque en nuestra llamada anterior estabas ocupado. ¿Tienes un minuto ahora para continuar con tu proceso de beca? Tengo estos espacios para tu {motivo_legible}:\n\n{solicitud.lista_horarios}\n\n¿Te funciona alguno?"
 
     else:
-        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Hace unos meses te inscribiste con nosotros para formarte como developer. Intentamos contactarte por llamada sin éxito, así que te escribo por aquí. 🚀\n\nPara continuar tu proceso, necesito confirmar tu asistencia a tu {solicitud.motivo}. Tengo estos espacios:\n\n{solicitud.lista_horarios}\n\n¿Cuál te sirve?"
+        primer_mensaje = f"¡Hola {solicitud.nombre}! 👋 Soy Sofía de Riwi. Hace unos meses te inscribiste con nosotros para formarte como developer. Intentamos contactarte por llamada sin éxito, así que te escribo por aquí. 🚀\n\nPara continuar tu proceso, necesito confirmar tu asistencia a tu {motivo_legible}. Tengo estos espacios:\n\n{solicitud.lista_horarios}\n\n¿Cuál te sirve?"
 
     sesiones_activas[telefono]["historial"].append({"role": "assistant", "content": primer_mensaje})
     await enviar_mensaje_whatsapp(telefono, primer_mensaje)

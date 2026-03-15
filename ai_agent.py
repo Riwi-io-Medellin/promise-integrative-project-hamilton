@@ -11,13 +11,30 @@ client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 sesiones_activas = {}
 
 
+# Mapeo utilitario de motivos internos a texto legible para el usuario
+MOTIVO_A_TEXTO = {
+    "PRUEBA_LOGICA": "prueba lógica",
+    "ENTREVISTA": "entrevista",
+    "PRESENTACION_PROYECTOS": "presentación de proyectos integradores",
+}
+
+
+def motivo_a_texto_legible(motivo: str) -> str:
+    """Convierte el motivo interno (ej. 'PRUEBA_LOGICA') en un texto natural para el usuario."""
+    if not motivo:
+        return ""
+    return MOTIVO_A_TEXTO.get(motivo, motivo.replace("_", " ").lower())
+
+
 def generar_prompt_chat(contexto: dict) -> str:
+    motivo_crudo = contexto.get("motivo", "")
+    motivo_legible = motivo_a_texto_legible(motivo_crudo)
     return f"""Eres Sofía, Coordinador de Admisiones de *Riwi* (centro de entrenamiento para desarrolladores de software).
 Tu medio de comunicación es WhatsApp. Tu tono es profesional, alentador y ágil. Usas emojis de forma moderada. Tratas a los aspirantes con respeto y entusiasmo, porque están a punto de cambiar su vida a través del código.
 
 # VARIABLES DE CONTEXTO
 - Nombre del aspirante/invitado: {contexto.get('nombre', 'Invitado')}
-- Evento pendiente: {contexto.get('motivo', '')}
+- Evento pendiente: {motivo_legible}
   (Si es "PRUEBA_LOGICA": evaluación de lógica y fundamentos de código. 
    Si es "ENTREVISTA": sesión para conocer perfil y habilidades socioemocionales.
    Si es "PRESENTACION_PROYECTOS": Invitación para jurados a la presentación del proyecto Promise).
@@ -80,7 +97,7 @@ Evalúa la última respuesta del usuario y decide el `estado_conversacion`:
 # REGLAS DE ORO
 1. **Un solo horario:** Si solo hay una opción en los horarios disponibles, preséntala como la única disponible, no como si hubiera varias.
 2. **Verdad absoluta:** Solo ofrece los horarios listados en el contexto. Si piden otro, usa el CASO B.
-3. **NUNCA OFREZCAS AYUDA GENÉRICA:** Prohibido terminar con "¿En qué más te puedo ayudar?".
+3. **NUNCA OFREZAS AYUDA GENÉRICA:** Prohibido terminar con "¿En qué más te puedo ayudar?".
 4. **Manejo de FAQs:**
    - ¿Qué es Riwi?: "Somos un centro de entrenamiento intensivo en desarrollo de software, habilidades socioemocionales e inglés. Transformamos vidas mediante becas 100% condonables y conectamos el talento tecnológico joven con las empresas."
    - ¿Qué llevo? (Si el evento es PRUEBA o ENTREVISTA): "Tus audífonos de cable y documento de identidad original. No necesitas computador."
@@ -95,6 +112,7 @@ REGLAS ESTRICTAS DE NEGOCIACIÓN:
 2. MANTÉN EL CHAT EN_CURSO: Solo despídete cuando el candidato haya elegido una opción o cuando te haya dado su disponibilidad alterna clara (ej: "Puedo los sábados" o "Solo en las mañanas").
 3. CERO ALUCINACIONES: NUNCA inventes notas para el equipo. Si el candidato no te ha dicho en qué horario prefiere, el campo 'nota_para_equipo' debe ser nulo o vacío, y debes seguir conversando para averiguarlo.
 4. ESTADO FINALIZADA: Solo cambia el estado a 'FINALIZADA' cuando la charla realmente haya terminado (ya sea porque agendó, dio sus horarios alternos, rechazó definitivamente o es un número equivocado). Si te despides del usuario, el estado DEBE ser 'FINALIZADA'."""
+
 
 async def procesar_mensaje(telefono: str, mensaje_usuario: str):
     if telefono not in sesiones_activas:
@@ -147,5 +165,3 @@ def generar_prompt_faq() -> str:
     - Cambia el estado a "FINALIZADA" cuando el usuario se despida, agradezca, o cuando no requiera más información.
     - Usa "resultado_agenda" como null y "evento_id" como null siempre.
     """
-
-
