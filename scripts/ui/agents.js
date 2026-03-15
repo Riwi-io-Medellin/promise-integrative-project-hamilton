@@ -1,3 +1,5 @@
+const HOVER_DEBOUNCE_MS = 120;
+
 function createAmbient(agentId) {
   if (agentId === "sofia") {
     const wrap = document.createElement("div");
@@ -157,7 +159,7 @@ export function initAgentsExperience({ panelsElement, detailElement, agents }) {
         return;
       }
       clearTimeout(hoverTimer);
-      hoverTimer = setTimeout(() => activateAgent(panel.dataset.agentId), 120);
+      hoverTimer = setTimeout(() => activateAgent(panel.dataset.agentId), HOVER_DEBOUNCE_MS);
     });
     panel.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
     panel.addEventListener("keydown", (event) => {

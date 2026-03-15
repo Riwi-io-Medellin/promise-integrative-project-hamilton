@@ -11,6 +11,8 @@ import {
 } from "../data.js";
 import { initAgentsExperience } from "../ui/agents.js";
 
+const TICKER_REPEAT_COUNT = 4;
+
 function renderTicker() {
   const track = document.querySelector("[data-metrics-track]");
   if (!track) {
@@ -23,7 +25,7 @@ function renderTicker() {
     const loop = document.createElement("div");
     loop.className = "metrics-loop";
 
-    const repeated = [...kpiData, ...kpiData, ...kpiData, ...kpiData];
+    const repeated = Array(TICKER_REPEAT_COUNT).fill(kpiData).flat();
     repeated.forEach((item, index) => {
       const node = document.createElement("div");
       node.className = "metrics-item";
