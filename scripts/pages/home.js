@@ -21,19 +21,22 @@ function renderTicker() {
   }
 
   track.replaceChildren();
+  const repeatedKpis = [];
+  for (let loop = 0; loop < METRICS_TICKER_LOOPS; loop += 1) {
+    repeatedKpis.push(...kpiData);
+  }
 
   const createLoop = () => {
     const loop = document.createElement("div");
     loop.className = "metrics-loop";
 
-    const repeated = Array.from({ length: METRICS_TICKER_LOOPS }, () => [...kpiData]).flat();
-    repeated.forEach((item, index) => {
+    repeatedKpis.forEach((item, index) => {
       const node = document.createElement("div");
       node.className = "metrics-item";
       node.innerHTML = `<strong>${item.value}</strong><span>${item.label}</span>`;
       loop.append(node);
 
-      if (index < repeated.length - 1) {
+      if (index < repeatedKpis.length - 1) {
         const dot = document.createElement("span");
         dot.className = "metrics-dot";
         dot.setAttribute("aria-hidden", "true");
