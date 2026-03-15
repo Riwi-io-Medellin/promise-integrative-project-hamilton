@@ -11,6 +11,7 @@ import {
 } from "../data.js";
 import { initAgentsExperience } from "../ui/agents.js";
 
+// Repetimos suficiente contenido para que cada loop cubra el viewport sin dejar huecos durante el desplazamiento.
 const METRICS_TICKER_LOOPS = 4;
 
 function renderTicker() {
