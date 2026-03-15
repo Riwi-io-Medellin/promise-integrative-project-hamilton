@@ -65,6 +65,21 @@
                 Borrado Total (Reinicio)
             </a>
 
+            <!-- ================= NUEVA SECCIÓN DE LOGS ================= -->
+            <p class="nav-section mt-4">MONITOREO (LOGS)</p>
+            <a href="#" class="nav-item" onclick="showView('view-logs-ver', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver Logs Entrantes
+            </a>
+            <a href="#" class="nav-item danger-text" onclick="showView('view-logs-limpiar', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                Limpiar Logs
+            </a>
+            <a href="#" class="nav-item" onclick="showView('view-logs-crear', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                Crear Tabla (Inicial)
+            </a>
+
             <p class="nav-section mt-4">PRUEBAS Y DIAGNÓSTICO</p>
 
             <a href="#" class="nav-item" onclick="showView('view-invite-jurado', this)">
@@ -214,6 +229,34 @@
                     <li><strong><svg class="bullet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> Por qué usarlo:</strong> El sistema no interactuará con alguien que ya agotó intentos o ya está en el historial.</li>
                 </ul>
                 <button class="btn btn-danger" onclick="runScript('resetear-bd.js', '', '--total')">⚠️ Ejecutar Borrado Total</button>
+            </div>
+
+            <!-- ================= NUEVA SECCIÓN DE LOGS ================= -->
+            <div id="view-logs-ver" class="info-card">
+                <div class="card-header"><div class="icon-box bg-slate-light"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--slate-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div><div><h3>Ver Logs de Webhook (Auditoría)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong><svg class="bullet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Propósito:</strong> Espiar qué información exacta te manda el chatbot.</li>
+                    <li><strong><svg class="bullet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Qué hace:</strong> Muestra los últimos 10 JSONs recibidos en la tabla <code>webhook_logs</code>.</li>
+                </ul>
+                <button class="btn btn-primary" onclick="runScript('ver-logs-webhook.js')">Ver Últimos 10 Logs</button>
+            </div>
+
+            <div id="view-logs-limpiar" class="info-card">
+                <div class="card-header"><div class="icon-box" style="background: rgba(254,101,79,0.1);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--tomato)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></div><div><h3>Limpiar Tabla de Logs</h3></div></div>
+                <ul class="script-details">
+                    <li><strong><svg class="bullet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Propósito:</strong> Borrar los registros antiguos para no llenar tu BD.</li>
+                </ul>
+                <!-- Ajusté el nombre para que busque si lo creaste como un archivo separado, si lo llamaste diferente solo cambia el string -->
+                <button class="btn btn-danger" onclick="runScript('limpiar-logs-webhook.js')">Vaciar Logs</button>
+            </div>
+
+            <div id="view-logs-crear" class="info-card">
+                <div class="card-header"><div class="icon-box bg-yellow-light"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--space-cadet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div><div><h3>Crear Tabla Logs (Inicialización)</h3></div></div>
+                <ul class="script-details">
+                    <li><strong><svg class="bullet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Propósito:</strong> Crear la tabla <code>webhook_logs</code> en PostgreSQL por primera vez.</li>
+                </ul>
+                <!-- Usando el nombre que me dijiste: create-logs-table.js -->
+                <button class="btn btn-primary" style="background: #E6CA52; color: #181E4B;" onclick="runScript('create-logs-table.js')">Instalar Tabla Logs</button>
             </div>
 
             <!-- ================== PRUEBAS (TESTING) ================== -->

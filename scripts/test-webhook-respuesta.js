@@ -26,7 +26,7 @@ const BASE_URL = `http://localhost:${process.env.PORT || 3000}/api/chatbot/webho
 
 // Argumentos
 const args = process.argv.slice(2);
-const candidato_id = args[0] || '00000000-0000-0000-0000-000000000000'; // UUID dummy
+const candidato_id = args[0] || '0dd9d7da-525f-44ad-997a-8e52103b765b'; // UUID dummy
 const resultado = args[1] || 'AGENDADO';
 const evento_id = args[2] || ''; // Opcional
 const nota = args[3] || 'Prueba desde script local';
@@ -37,7 +37,7 @@ async function main() {
 
   const payload = {
     candidato_id: candidato_id,
-    telefono: '+573001234567', // Dummy phone
+    telefono: '+573112790495', // Dummy phone
     resultado_agenda: resultado,
     evento_id: evento_id,
     nota: nota

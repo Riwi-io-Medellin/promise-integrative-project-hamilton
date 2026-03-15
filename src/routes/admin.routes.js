@@ -18,7 +18,11 @@ const ALLOWED_SCRIPTS = [
     'get-candidatos.js',
     'check-candidate.js',
     'reset-candidato.js',
-    'invitar-jurado.js' // <-- Agregado para permitir invitaciones desde el panel web
+    'invitar-jurado.js', // <-- Agregado para permitir invitaciones desde el panel web
+    'ver-logs-webhook.js',
+    'limpiar-logs-webhook.js',
+    'create-logs-table.js',
+    'setup-logs-db.js'
 ];
 
 // Endpoint para ejecutar scripts

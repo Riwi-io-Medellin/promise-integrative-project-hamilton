@@ -7,23 +7,25 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "tunnel": "C:\\ngrok\\ngrok.exe http 3000",
-
     "// --- JURADO Y DEMO ---": "",
     "bot:invite-jurado": "node scripts/invitar-jurado.js",
-
     "// --- OPERACIÓN DIARIA ---": "",
     "bot:trigger": "node scripts/trigger-masivo-chatbot.js",
     "bot:check": "node scripts/check-candidate.js",
     "bot:reset": "node scripts/reset-candidato.js",
-
     "// --- UTILIDADES ---": "",
     "db:check": "node scripts/test-db-connection.js",
     "db:events": "node scripts/list-events.js",
     "test:ngrok": "node scripts/test-ngrok.js",
-    "test:direct": "node scripts/test-chatbot-directo.js"
+    "test:direct": "node scripts/test-chatbot-directo.js",
+    "// --- MONITOREO Y LOGS ---": "",
+    "logs:setup": "node scripts/setup-logs-db.js",
+    "logs:view": "node scripts/ver-logs-webhook.js",
+    "logs:clear": "node scripts/limpiar-logs-webhook.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "ngrok": "^5.0.0-beta.2",

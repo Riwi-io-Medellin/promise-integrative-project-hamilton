@@ -6,19 +6,23 @@ const axios = require('axios');
 const pool = require('../src/db/pool');
 
 async function main() {
-  const candidatoId = process.argv[2];
+  let candidatoId = process.argv[2];
   
   if (!candidatoId) {
-    console.error('Uso: node scripts/test-chatbot.js <UUID_CANDIDATO>');
-    console.log('Buscando un candidato reciente para sugerir...');
-    
+    console.log('⚠️ No se proporcionó ID. Buscando el último candidato para probar...');
     try {
-        const { rows } = await pool.query('SELECT id, nombre, telefono FROM public.candidatos ORDER BY created_at DESC LIMIT 5');
-        console.table(rows);
+        const { rows } = await pool.query('SELECT id, nombre, telefono FROM public.candidatos ORDER BY created_at DESC LIMIT 1');
+        if (rows.length > 0) {
+            candidatoId = rows[0].id;
+            console.log(`🎯 Usando candidato: ${rows[0].nombre} (${candidatoId})`);
+        } else {
+            console.error('❌ No hay candidatos en la base de datos para probar.');
+            process.exit(1);
+        }
     } catch (e) {
         console.error('Error db:', e.message);
+        process.exit(1);
     }
-    process.exit(1);
   }
 
   const url = `http://localhost:${process.env.PORT || 3000}/api/chatbot/trigger-manual`;
@@ -38,4 +42,3 @@ async function main() {
 }
 
 main();
-

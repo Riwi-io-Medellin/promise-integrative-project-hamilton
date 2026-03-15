@@ -197,6 +197,18 @@ async function forceChatbotTrigger(candidatoId) {
  * @param {object} body - Payload recibido del bot.
  */
 async function handleBotWebhook(body) {
+  // --- INICIO AUDITORIA ---
+  // Guardar log crudo apenas entra
+  try {
+      // Necesitamos una conexión rápida, pero pool retorna un pool. 
+      // Si usamos pool.query podemos hacerlo directo.
+      await pool.query('INSERT INTO webhook_logs(payload, recibido_en) VALUES($1, NOW())', [JSON.stringify(body)]);
+  } catch (logErr) {
+      console.error('[ChatbotService] Error guardando log de webhook:', logErr.message);
+      // No frenamos el proceso principal si falla el log
+  }
+  // --- FIN AUDITORIA ---
+
   console.log('[ChatbotService] Procesando webhook del bot:', JSON.stringify(body));
 
   // Desestructuramos solo los campos esperados según requerimiento
