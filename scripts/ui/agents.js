@@ -132,6 +132,7 @@ export function initAgentsExperience({ panelsElement, detailElement, agents }) {
   panelsElement.append(...panels);
 
   let activeAgentId = agents[0].id;
+  let hoverTimer = null;
 
   const activateAgent = (agentId) => {
     const agent = agents.find((item) => item.id === agentId);
@@ -151,7 +152,14 @@ export function initAgentsExperience({ panelsElement, detailElement, agents }) {
 
   panels.forEach((panel) => {
     panel.addEventListener("click", () => activateAgent(panel.dataset.agentId));
-    panel.addEventListener("mouseenter", () => activateAgent(panel.dataset.agentId));
+    panel.addEventListener("mouseenter", () => {
+      if (!window.matchMedia("(hover: hover)").matches) {
+        return;
+      }
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => activateAgent(panel.dataset.agentId), 120);
+    });
+    panel.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
     panel.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") {
         return;
