@@ -1,0 +1,137 @@
+.promise-widget {
+  position: fixed;
+  z-index: 120;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: end;
+}
+
+.widget-toggle {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  border: 1px solid rgba(254, 184, 0, 0.45);
+  background: linear-gradient(145deg, rgba(82, 6, 11, 0.95), rgba(36, 2, 0, 0.9));
+  box-shadow: 0 20px 44px -24px rgba(254, 184, 0, 0.55);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.widget-toggle img {
+  width: 33px;
+  height: 33px;
+}
+
+.widget-panel {
+  width: min(360px, calc(100vw - 2rem));
+  border-radius: 16px;
+  border: 1px solid var(--color-outline);
+  background: linear-gradient(165deg, rgba(58, 5, 8, 0.96), rgba(24, 2, 2, 0.95));
+  box-shadow: 0 22px 64px -35px rgba(12, 1, 1, 0.8);
+  overflow: hidden;
+  transform-origin: bottom right;
+  transform: scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 220ms var(--ease-standard), opacity 220ms var(--ease-standard);
+}
+
+.promise-widget.open .widget-panel {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.widget-head strong {
+  font-size: 0.88rem;
+}
+
+.widget-status {
+  margin: 0.2rem 0 0;
+  font-size: 0.73rem;
+  color: rgba(247, 207, 198, 0.85);
+}
+
+.widget-status.live {
+  color: #ffce52;
+}
+
+.widget-body {
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.widget-log {
+  border-radius: 12px;
+  border: 1px solid var(--color-outline);
+  background: rgba(82, 6, 11, 0.4);
+  min-height: 120px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.widget-msg {
+  font-size: 0.84rem;
+  line-height: 1.4;
+  padding: 0.55rem 0.62rem;
+  border-radius: 10px;
+  max-width: 92%;
+}
+
+.widget-msg.bot {
+  background: rgba(139, 46, 52, 0.44);
+}
+
+.widget-msg.user {
+  justify-self: end;
+  background: rgba(254, 184, 0, 0.22);
+}
+
+.widget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.widget-action {
+  border: 1px solid var(--color-outline);
+  background: rgba(36, 2, 0, 0.56);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 0.42rem 0.76rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.widget-action:hover,
+.widget-action:focus-visible {
+  border-color: rgba(254, 184, 0, 0.5);
+}
+
+.widget-note {
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(247, 207, 198, 0.75);
+}
+
+.widget-live-host {
+  border-radius: 12px;
+  border: 1px solid var(--color-outline);
+  background: rgba(36, 2, 0, 0.62);
+  padding: 0.45rem;
+}

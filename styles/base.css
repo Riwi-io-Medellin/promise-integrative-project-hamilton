@@ -1,0 +1,123 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 12% 10%, rgba(139, 46, 52, 0.22), transparent 36%),
+    radial-gradient(circle at 88% 88%, rgba(254, 184, 0, 0.08), transparent 40%), var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: rgba(254, 184, 0, 0.25);
+  color: var(--color-text);
+}
+
+.container {
+  width: min(100% - 2.5rem, var(--container-max));
+  margin-inline: auto;
+}
+
+.section {
+  padding-block: clamp(4rem, 8vw, 7rem);
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+}
+
+.section-title em {
+  color: var(--color-accent);
+  font-style: normal;
+}
+
+.section-copy {
+  margin: 1rem 0 0;
+  color: rgba(247, 207, 198, 0.9);
+  max-width: 70ch;
+}
+
+.surface {
+  border: 1px solid var(--color-outline);
+  background: linear-gradient(160deg, rgba(58, 5, 8, 0.86), rgba(34, 2, 2, 0.76));
+  border-radius: var(--radius-md);
+  box-shadow: 0 22px 70px -38px var(--color-shadow);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 700ms var(--ease-standard), transform 700ms var(--ease-standard);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(rgba(255, 239, 235, 0.22) 0.75px, transparent 0);
+  background-size: 3px 3px;
+}
+
+@media (max-width: 900px) {
+  .container {
+    width: min(100% - 1.5rem, var(--container-max));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

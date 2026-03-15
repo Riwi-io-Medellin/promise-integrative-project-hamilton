@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Promise | Arquitectura híbrida para automatizar flujos repetitivos</title>
+    <meta
+      name="description"
+      content="Promise crea agentes conversacionales a medida para automatizar procesos repetitivos. Producto actual: RiwiCall impulsado por SofIA."
+    />
+    <link rel="stylesheet" href="./styles/main.css" />
+    <link rel="stylesheet" href="./styles/pages/home.css" />
+  </head>
+  <body data-page="inicio">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand-link" href="./index.html" aria-label="Promise inicio">
+          <img class="brand-logo" src="./assets/brand/LOGO-OSCURO.png" alt="Promise" />
+        </a>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-menu">
+          Menú
+        </button>
+        <ul id="main-menu" class="nav-links" data-nav-links>
+          <li><a href="./index.html" data-nav-page="inicio">Inicio</a></li>
+          <li><a href="./como-funciona.html" data-nav-page="funciona">Cómo funciona</a></li>
+          <li><a href="./precios.html" data-nav-page="precios">Precios</a></li>
+          <li><a href="./quienes-somos.html" data-nav-page="quienes">Quiénes somos</a></li>
+          <li><a href="#contacto">Contacto</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+      <section class="home-hero noise-overlay">
+        <div class="container home-hero-grid">
+          <div class="reveal in">
+            <p class="eyebrow">Promise · More Human.</p>
+            <h1>Si hay un flujo repetitivo,<em>Promise lo automatiza.</em></h1>
+            <p>
+              Diseñamos agentes conversacionales a medida para que los equipos dejen de gastar energía en tareas
+              mecánicas y vuelvan a enfocarse en decisiones humanas de valor.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#agentes">Explorar agentes</a>
+              <a class="btn btn-secondary" href="./como-funciona.html">Ver implementación</a>
+            </div>
+          </div>
+          <aside class="hero-orb reveal">
+            <div class="pulse-grid" data-pulse-grid></div>
+            <img class="logo" src="./assets/brand/ISOLOGO-OSCURO.png" alt="Isologo Promise" />
+          </aside>
+        </div>
+      </section>
+
+      <section class="metrics-ticker" aria-label="Métricas Promise">
+        <div class="metrics-track" data-metrics-track></div>
+      </section>
+
+      <section class="section">
+        <div class="container problem-grid">
+          <article class="reveal">
+            <p class="eyebrow">El problema · caso Laura</p>
+            <h2 class="problem-quote">
+              “Para llegar a las personas que importan, primero hay que pasar por <em>todas las demás.</em>”
+            </h2>
+          </article>
+          <article class="problem-story surface reveal">
+            <p>
+              Riwi recibe miles de aspirantes por cohorte y tiene una ventana corta para confirmar entrevistas o
+              exámenes. El equipo humano invertía tiempo valioso en intentos repetitivos con baja respuesta.
+            </p>
+            <p>
+              Promise nace para resolver ese patrón. SofIA ya opera en producción con RiwiCall, y hoy el foco es
+              escalar esa capacidad hacia un motor modular unificado.
+            </p>
+          </article>
+        </div>
+        <div class="container stats-grid card-grid" data-kpi-grid></div>
+      </section>
+
+      <section id="agentes" class="section">
+        <div class="container">
+          <p class="eyebrow">Centro de experiencia</p>
+          <h2 class="section-title reveal">Tres agentes, <em>una arquitectura.</em></h2>
+          <p class="section-copy reveal">
+            Haz clic sobre cada agente para abrir su vista expandida: capacidades, estado actual, arquitectura,
+            canales y métricas clave.
+          </p>
+
+          <div class="agents-experience">
+            <div class="agents-panels" data-agents-panels aria-label="Paneles de agentes inmersivos"></div>
+            <article class="agent-detail surface reveal" data-agent-detail aria-live="polite"></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">Usos y expansión</p>
+          <h2 class="section-title reveal">
+            De admisiones a operaciones críticas: <em>cómo se usa Promise en la práctica.</em>
+          </h2>
+          <p class="section-copy reveal">
+            Cada implementación parte del flujo real, no de una plantilla. Por eso un mismo stack resuelve industrias
+            distintas sin perder precisión.
+          </p>
+          <div class="use-case-grid card-grid" data-use-cases></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">Metodología Promise</p>
+          <h2 class="section-title reveal">Implementación end-to-end en <em>4 etapas.</em></h2>
+          <div class="implementation-grid card-grid" data-implementation-grid></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">Integraciones actuales</p>
+          <h2 class="section-title reveal">Canales y piezas de operación <em>listas para producción.</em></h2>
+          <div class="integrations-grid card-grid" data-integrations-grid></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">Roadmap</p>
+          <h2 class="section-title reveal">Estado real de la plataforma <em>Promise.</em></h2>
+          <div class="roadmap-grid card-grid" data-roadmap-grid></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <p class="eyebrow">Preguntas frecuentes</p>
+          <h2 class="section-title reveal">Lo esencial antes de <em>arrancar.</em></h2>
+          <div class="faq-list" data-faq-list></div>
+
+          <article id="contacto" class="cta-strip reveal">
+            <div>
+              <h3>Convirtamos tu operación repetitiva en un sistema inteligente.</h3>
+              <p>
+                CTA temporal: agenda una conversación de diagnóstico para mapear volumen, reglas y canal ideal del
+                agente.
+              </p>
+            </div>
+            <a class="btn btn-secondary" href="#">Solicitar diagnóstico</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-shell">
+        <img class="brand-logo" src="./assets/brand/LOGO-OSCURO.png" alt="Promise" />
+        <p class="footer-copy">© <span data-current-year></span> Promise · Medellín, Colombia · Arquitectura híbrida</p>
+        <p class="footer-tag">More Human.</p>
+      </div>
+    </footer>
+
+    <script type="module" src="./scripts/pages/home.js"></script>
+  </body>
+</html>
