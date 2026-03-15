@@ -22,12 +22,22 @@ function formatEventDate(value) {
         timeZone: TIMEZONE
     }).format(date);
 
-    const time = new Intl.DateTimeFormat(LOCALE, {
+    const parts = new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
+        hour12: false,
         timeZone: TIMEZONE
-    }).format(date);
+    }).formatToParts(date);
+
+    const hourPart = parts.find(p => p.type === 'hour');
+    const minutePart = parts.find(p => p.type === 'minute');
+
+    const h = hourPart ? Number(hourPart.value) : date.getUTCHours();
+    const m = minutePart ? String(minutePart.value).padStart(2, '0') : String(date.getUTCMinutes()).padStart(2, '0');
+
+    const suffix = h < 12 ? 'de la mañana' : (h < 18 ? 'de la tarde' : 'de la noche');
+    const displayHour = ((h + 11) % 12) + 1;
+    const time = `${displayHour}:${m} ${suffix}`;
 
     return `${weekday} ${day} de ${month} a las ${time}`;
 }
@@ -42,7 +52,7 @@ function formatPreferredTime(value) {
     const m = Number(minutes);
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
 
-    const suffix = h >= 12 ? 'PM' : 'AM';
+    const suffix = h < 12 ? 'de la mañana' : (h < 18 ? 'de la tarde' : 'de la noche');
     const displayHour = ((h + 11) % 12) + 1;
     const displayMinute = String(m).padStart(2, '0');
 
@@ -50,4 +60,3 @@ function formatPreferredTime(value) {
 }
 
 module.exports = { formatEventDate, formatPreferredTime };
-
