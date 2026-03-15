@@ -3,8 +3,8 @@
   top: 0;
   z-index: 100;
   backdrop-filter: blur(12px);
-  background: rgba(36, 2, 0, 0.7);
-  border-bottom: 1px solid rgba(255, 239, 235, 0.1);
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  border-bottom: 1px solid var(--color-outline);
 }
 
 .nav-shell {
@@ -48,7 +48,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 239, 235, 0.8);
+  color: color-mix(in srgb, var(--color-text) 84%, transparent);
   transition: color 220ms ease;
 }
 
@@ -59,6 +59,29 @@
 
 .nav-links a.active {
   color: var(--color-accent);
+}
+
+.nav-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.theme-toggle {
+  border: 1px solid var(--color-outline);
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-bg-soft) 65%, transparent);
+  border-radius: 999px;
+  padding: 0.4rem 0.72rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 .btn {
@@ -103,7 +126,7 @@
 
 .site-footer {
   border-top: 1px solid var(--color-outline);
-  background: #1b0100;
+  background: color-mix(in srgb, var(--color-bg-soft) 62%, #1b0100);
   padding-block: 2.6rem;
 }
 
@@ -116,13 +139,13 @@
 
 .footer-copy {
   font-size: 0.8rem;
-  color: rgba(247, 207, 198, 0.68);
+  color: color-mix(in srgb, var(--color-text) 68%, transparent);
   text-align: center;
 }
 
 .footer-tag {
   font-size: 0.82rem;
-  color: rgba(247, 207, 198, 0.68);
+  color: color-mix(in srgb, var(--color-text) 68%, transparent);
 }
 
 .chip {
@@ -171,7 +194,7 @@
 
 .page-hero p {
   font-size: 1.05rem;
-  color: rgba(247, 207, 198, 0.9);
+  color: color-mix(in srgb, var(--color-text) 82%, transparent);
 }
 
 .pills-wrap {
@@ -192,7 +215,7 @@
     left: 1rem;
     border-radius: 14px;
     padding: 0.9rem;
-    background: rgba(36, 2, 0, 0.95);
+    background: color-mix(in srgb, var(--color-bg) 92%, transparent);
     border: 1px solid var(--color-outline);
     display: none;
     flex-direction: column;
@@ -202,6 +225,10 @@
 
   .nav-links.open {
     display: flex;
+  }
+
+  .nav-actions {
+    margin-left: auto;
   }
 
   .footer-shell {

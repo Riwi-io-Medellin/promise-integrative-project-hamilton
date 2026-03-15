@@ -25,11 +25,13 @@ function createAmbient(agentId) {
 function createPanel(agent, index) {
   const panel = document.createElement("article");
   panel.className = "agent-panel";
+  panel.classList.add(`agent-panel-${index + 1}`);
   panel.dataset.agentId = agent.id;
   panel.dataset.agentTheme = agent.theme;
   panel.role = "button";
   panel.tabIndex = 0;
   panel.setAttribute("aria-expanded", index === 0 ? "true" : "false");
+  panel.setAttribute("aria-label", `${agent.name}: ${agent.role}`);
 
   const header = document.createElement("div");
   header.className = "agent-header";
@@ -149,6 +151,7 @@ export function initAgentsExperience({ panelsElement, detailElement, agents }) {
 
   panels.forEach((panel) => {
     panel.addEventListener("click", () => activateAgent(panel.dataset.agentId));
+    panel.addEventListener("mouseenter", () => activateAgent(panel.dataset.agentId));
     panel.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") {
         return;

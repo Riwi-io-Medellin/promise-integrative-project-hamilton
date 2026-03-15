@@ -187,6 +187,24 @@ export const roadmap = [
   }
 ];
 
+export const riwiCallHighlights = [
+  {
+    title: "Operación actual",
+    description:
+      "RiwiCall ya funciona en producción con SofIA para contacto masivo de aspirantes en ventanas cortas de admisión."
+  },
+  {
+    title: "Qué resuelve",
+    description:
+      "Automatiza llamadas, entiende respuestas ambiguas y registra decisiones en tiempo real para reducir intentos manuales."
+  },
+  {
+    title: "Resultado observado",
+    description:
+      "Más cobertura operativa, ahorro de tiempo del equipo y trazabilidad de cada interacción por campaña."
+  }
+];
+
 export const faqData = [
   {
     question: "¿Promise reemplaza al equipo humano?",

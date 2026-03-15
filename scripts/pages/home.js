@@ -5,6 +5,7 @@ import {
   implementationSteps,
   integrations,
   kpiData,
+  riwiCallHighlights,
   roadmap,
   useCases
 } from "../data.js";
@@ -16,12 +17,47 @@ function renderTicker() {
     return;
   }
 
-  const repeated = [...kpiData, ...kpiData];
-  repeated.forEach((item) => {
-    const node = document.createElement("div");
-    node.className = "metrics-item";
-    node.innerHTML = `<strong>${item.value}</strong><span>${item.label}</span>`;
-    track.append(node);
+  track.replaceChildren();
+
+  const createLoop = () => {
+    const loop = document.createElement("div");
+    loop.className = "metrics-loop";
+
+    const repeated = Array.from({ length: 4 }, () => kpiData).flat();
+    repeated.forEach((item, index) => {
+      const node = document.createElement("div");
+      node.className = "metrics-item";
+      node.innerHTML = `<strong>${item.value}</strong><span>${item.label}</span>`;
+      loop.append(node);
+
+      if (index < repeated.length - 1) {
+        const dot = document.createElement("span");
+        dot.className = "metrics-dot";
+        dot.setAttribute("aria-hidden", "true");
+        loop.append(dot);
+      }
+    });
+
+    return loop;
+  };
+
+  track.append(createLoop(), createLoop());
+}
+
+function renderRiwiCallSpotlight() {
+  const container = document.querySelector("[data-riwicall-grid]");
+  if (!container) {
+    return;
+  }
+
+  riwiCallHighlights.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "riwicall-card surface reveal";
+    card.innerHTML = `
+      <h3>${item.title}</h3>
+      <p>${item.description}</p>
+    `;
+    container.append(card);
   });
 }
 
@@ -175,6 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderIntegrations();
   renderRoadmap();
   renderFaq();
+  renderRiwiCallSpotlight();
   renderHeroPulse();
   initAgents();
   initSharedExperience();

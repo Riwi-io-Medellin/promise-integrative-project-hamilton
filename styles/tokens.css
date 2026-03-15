@@ -24,3 +24,18 @@
   --container-max: 1180px;
   --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #ffefeb;
+  --color-bg-soft: #fff6f3;
+  --color-surface: #fff6f3;
+  --color-surface-soft: #f3d5cf;
+  --color-bridge: #8b2e34;
+  --color-accent: #feb800;
+  --color-text: #240200;
+  --color-text-soft: #52060b;
+  --color-outline: rgba(36, 2, 0, 0.14);
+  --color-outline-strong: rgba(36, 2, 0, 0.28);
+  --color-shadow: rgba(36, 2, 0, 0.2);
+}
