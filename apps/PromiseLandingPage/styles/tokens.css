@@ -1,0 +1,41 @@
+:root {
+  color-scheme: dark;
+  --color-bg: #240200;
+  --color-bg-soft: #52060b;
+  --color-surface: #3a0508;
+  --color-surface-soft: #5d1118;
+  --color-bridge: #8b2e34;
+  --color-accent: #feb800;
+  --color-text: #ffefeb;
+  --color-text-soft: #f7cfc6;
+  --color-outline: rgba(255, 239, 235, 0.16);
+  --color-outline-strong: rgba(255, 239, 235, 0.34);
+  --color-shadow: rgba(12, 1, 1, 0.45);
+  --gradient-brand: linear-gradient(135deg, #52060b 0%, #8b2e34 55%, #feb800 100%);
+  --gradient-dark: linear-gradient(135deg, #240200 0%, #52060b 45%, #8b2e34 100%);
+  --gradient-signal: linear-gradient(135deg, #8b2e34 0%, #feb800 100%);
+
+  --font-display: "Iosevka_Charon_Mono", "Iosevka Charon", "Iosevka", "JetBrains Mono", monospace;
+  --font-body: "Raleway", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+  --container-max: 1180px;
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #ffefeb;
+  --color-bg-soft: #fff6f3;
+  --color-surface: #fff6f3;
+  --color-surface-soft: #f3d5cf;
+  --color-bridge: #8b2e34;
+  --color-accent: #feb800;
+  --color-text: #240200;
+  --color-text-soft: #52060b;
+  --color-outline: rgba(36, 2, 0, 0.14);
+  --color-outline-strong: rgba(36, 2, 0, 0.28);
+  --color-shadow: rgba(36, 2, 0, 0.2);
+}

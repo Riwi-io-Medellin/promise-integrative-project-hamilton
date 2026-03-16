@@ -1,0 +1,17 @@
+{
+  "name": "promise-landing-page",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "@11labs/client": "^0.2.0"
+  }
+}

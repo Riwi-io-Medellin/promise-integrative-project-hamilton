@@ -1,0 +1,101 @@
+.pricing-grid {
+  margin-top: 2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pricing-card {
+  padding: 1.4rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.pricing-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+}
+
+.pricing-range {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.pricing-card p {
+  margin: 0;
+  color: rgba(247, 207, 198, 0.9);
+}
+
+.pricing-card ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.pricing-card li + li {
+  margin-top: 0.38rem;
+}
+
+.pricing-card.highlight {
+  border-color: rgba(254, 184, 0, 0.5);
+  box-shadow: 0 22px 70px -34px rgba(254, 184, 0, 0.35);
+}
+
+.matrix-wrap {
+  margin-top: 2.2rem;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.matrix-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.matrix-wrap th,
+.matrix-wrap td {
+  border-bottom: 1px solid var(--color-outline);
+  padding: 0.85rem;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.matrix-wrap thead {
+  background: rgba(139, 46, 52, 0.38);
+}
+
+.matrix-wrap tbody tr:nth-child(2n) {
+  background: rgba(82, 6, 11, 0.35);
+}
+
+.matrix-wrap td.good {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.matrix-wrap td.partial {
+  color: rgba(255, 239, 235, 0.8);
+}
+
+.pricing-notes {
+  margin-top: 1rem;
+  color: rgba(247, 207, 198, 0.86);
+  font-size: 0.9rem;
+}
+
+.faq-line {
+  margin-top: 1.4rem;
+}
+
+@media (max-width: 1020px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matrix-wrap {
+    overflow-x: auto;
+  }
+}
