@@ -1,0 +1,719 @@
+{
+  "name": "Varios",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        -160
+      ],
+      "id": "e27698a9-6775-41f2-83db-7d6ce435c86d",
+      "name": "Planificador"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://tklnqbdxdcwlgcamnima.supabase.co/rest/v1/rpc/llenar_cola_llamadas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -112,
+        -160
+      ],
+      "id": "bfaece10-1398-4555-9a31-a0cf6c748126",
+      "name": "Crear cola de pendientes",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bOOQhudZSVYKzNv6",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        256
+      ],
+      "id": "89f875e3-8722-49a7-815e-784b37278368",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "llamadas",
+        "limit": 100,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "resultado_id",
+              "condition": "eq",
+              "keyValue": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        256
+      ],
+      "id": "a733b08d-afb1-49a8-8608-fe8a91c5a983",
+      "name": "Contar llamadas activas",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const llamadasActivas = items.length;\nconst maxConcurrentes = 4;\nconst disponibles = Math.max(0, maxConcurrentes - llamadasActivas);\n\nconsole.log(`Activas: ${llamadasActivas}, Disponibles: ${disponibles}`);\n\nreturn [{\n  json: {\n    llamadas_activas: llamadasActivas,\n    disponibles: disponibles\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        256
+      ],
+      "id": "ef4fcd67-0371-484b-a605-a4c045c63a26",
+      "name": "Calcular disponibles"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9f723304-e9e5-4ae2-8292-f4ed824a69fb",
+              "leftValue": "={{ $json.disponibles }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        256
+      ],
+      "id": "e76495e1-92a4-4a90-ac72-8179e0bf0aa5",
+      "name": "¿Hay espacio?"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cola_llamadas",
+        "limit": "={{ $('Calcular disponibles').item.json.disponibles }}",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "PENDIENTE"
+            },
+            {
+              "keyName": "fecha_programada",
+              "condition": "eq",
+              "keyValue": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        400,
+        160
+      ],
+      "id": "543e06a7-b428-46fd-bef6-e4947a0cfa50",
+      "name": "Traer siguiente cola",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ordenar por prioridad descendente (mayor CI primero)\nconst ordenados = items.sort((a, b) => b.json.prioridad - a.json.prioridad);\n\nreturn ordenados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        160
+      ],
+      "id": "01e736cf-e8a2-413f-9719-14e30f76f874",
+      "name": "Ordenar por prioridad"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        816,
+        160
+      ],
+      "id": "766c97f5-89bd-4c64-af38-2f5c930ceb3c",
+      "name": "Procesar cada candidato"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cola_llamadas",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "estado",
+              "fieldValue": "EN_CURSO"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        320
+      ],
+      "id": "062bbe91-96a7-45f9-81ae-cef4d7fee1c0",
+      "name": "Marcar EN_CURSO en cola",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "candidatos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.candidato_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        320
+      ],
+      "id": "f6b432ad-8fce-497d-b03e-d3ef10ac18ad",
+      "name": "Traer candidato completo",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "motivos_llamada",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ Number($json.motivo_llamada_id) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        320
+      ],
+      "id": "0f16b409-64af-498f-9c87-3a2bfb89d420",
+      "name": "Obtener motivo_llamada",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "eventos",
+        "limit": 10,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tipo_reunion",
+              "condition": "eq",
+              "keyValue": "={{ $('Traer candidato completo').item.json.fase_actual }}"
+            },
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "DISPONIBLE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        320
+      ],
+      "id": "d29a34cb-6d70-487e-9bd1-609d644e67d7",
+      "name": "Obtener Eventos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nconst meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\n\nreturn items.map(item => {\n  // Tomamos la hora directamente del string sin conversión de zona horaria\n  const fechaStr = item.json.fecha_hora.replace('+00:00', '');\n  const fecha = new Date(fechaStr);\n  \n  const dia = dias[fecha.getDay()];\n  const numeroDia = fecha.getDate();\n  const mes = meses[fecha.getMonth()];\n  const horas = fecha.getHours();\n  const minutos = fecha.getMinutes().toString().padStart(2, '0');\n  const ampm = horas >= 12 ? 'PM' : 'AM';\n  const hora12 = horas % 12 || 12;\n  \n  return {\n    json: {\n      ...item.json,\n      fecha_legible: `${dia} ${numeroDia} de ${mes} a las ${hora12}:${minutos} ${ampm}`\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        320
+      ],
+      "id": "52d10244-8e97-4233-a98c-185d08990daf",
+      "name": "Parseo de fecha"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "eventos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        320
+      ],
+      "id": "7cf34662-4418-4395-b989-ceb6a767957d",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = items[0].json;\nconst eventos = input.eventos || [];\n\n// Generar textos para el bot\nconst fechasTexto = eventos\n  .map((e, index) => `opción ${index + 1}: ${e.fecha_legible}`)\n  .join(', ');\n\nconst eventosTexto = eventos\n  .map(e => `${e.fecha_legible} (ID: ${e.id})`)\n  .join('; ');\n\n// Obtener datos del candidato desde Split in Batches\nconst candidato = $('Procesar cada candidato').item.json;\n\nreturn [{\n  json: {\n    candidato_id: candidato.id,\n    telefono: candidato.telefono,\n    nombre: `${candidato.nombre} ${candidato.apellido}`,\n    motivo: candidato.fase_actual,\n    lista_horarios: fechasTexto,\n    eventos_disponibles: eventosTexto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        320
+      ],
+      "id": "bfd2f7d9-f02c-427d-bf11-b4e5ad6493ea",
+      "name": "JSON ElevenLabs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/convai/twilio/outbound-call",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agent_id\": \"agent_4501khbynht9ennvk32madk7k1jj\",\n  \"agent_phone_number_id\": \"phnum_8101khntfkmbeq6amer4dt70p5vs\",\n  \"to_number\": \"{{ $json.telefono }}\",\n  \"conversation_initiation_client_data\": {\n    \"dynamic_variables\": {\n      \"id\": \"{{ $json.candidato_id }}\",\n      \"nombre\": \"{{ $json.nombre }}\",\n      \"motivo\": \"{{ $json.motivo }}\",\n      \"lista_horarios\": \"{{ $json.lista_horarios }}\",\n      \"eventos_disponibles\": \"{{ $json.eventos_disponibles }}\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2736,
+        320
+      ],
+      "id": "822c5d07-ec99-4c69-b656-1ed8741ea718",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "N5t4dYUIGLsltSrf",
+          "name": "ElevenLabsAPI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = items[0].json;\nconst candidato = $('Procesar_Usuarios').item.json;\n\n// Aquí ponemos directamente el id de 'EN_CURSO'.\n// Más adelante, si quieres, creamos un nodo Supabase que lo lea dinámicamente.\nconst resultadoEnCursoId = 1; // asegúrate que 1 sea el id de EN_CURSO\n\nreturn [{\n  json: {\n    candidato_id: candidato.id,\n    fecha_hora_llamada: new Date().toISOString(),\n    resultado_id: resultadoEnCursoId,\n    conversation_id: httpResponse.conversation_id || null,\n    resumen: \"Llamada iniciada\"\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        320
+      ],
+      "id": "d5378fbe-57d2-4cc7-9090-4d4767843e57",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "tableId": "llamadas",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidato_id",
+              "fieldValue": "={{ $json.candidato_id }}"
+            },
+            {
+              "fieldId": "fecha_hora_llamada",
+              "fieldValue": "={{ $json.fecha_hora_llamada }}"
+            },
+            {
+              "fieldId": "resultado_id",
+              "fieldValue": "={{ $json.resultado_id }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $json.conversation_id }}"
+            },
+            {
+              "fieldId": "resumen",
+              "fieldValue": "={{ $json.resumen }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        320
+      ],
+      "id": "b54a73f6-bca8-4c45-934f-4393c63517ee",
+      "name": "Crear Llamada",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Hora actual del servidor en UTC\nconst nowUtc = new Date();\nlet hora = nowUtc.getUTCHours(); // 0-23\nconst min = nowUtc.getUTCMinutes();\n\n// Ajustar a Colombia (UTC-5)\nhora = (hora - 5 + 24) % 24; // normaliza a 0–23\n\n// Ventana global 6:00 - 22:00\nconst dentroVentanaGlobal = hora >= 6 && hora < 22;\nif (!dentroVentanaGlobal) {\n  // Fuera de ventana global → no llamar\n  return [];\n}\n\n// 2. Intentar leer horario del candidato\nconst horarioItems = $items('Obtener horario', 0, 0);\nlet codigoHorario = null;\n\nif (horarioItems && horarioItems.json && horarioItems.json.codigo) {\n  codigoHorario = horarioItems.json.codigo; // 'AM', 'PM', 'AMPM'\n}\n\n// 3. Validar según franja\nlet permitido = false;\n\nif (!codigoHorario) {\n  // Si no hay horario, usamos solo la ventana global\n  permitido = true;\n} else if (codigoHorario === 'AM') {\n  permitido = hora >= 6 && hora < 13;\n} else if (codigoHorario === 'PM') {\n  permitido = hora >= 14 && hora < 22;\n} else if (codigoHorario === 'AMPM') {\n  permitido = hora >= 6 && hora < 22;\n}\n\nif (!permitido) {\n  return [];\n}\n\n// Debug opcional\nitems[0].json.debug_hora_local = hora;\nitems[0].json.debug_min_local = min;\nitems[0].json.debug_horario_codigo = codigoHorario || 'SIN_HORARIO';\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        176
+      ],
+      "id": "3023f7ef-6734-4bbf-a259-b3b5d2d001a1",
+      "name": "Validar horario de llamada"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Planificador": {
+      "main": [
+        [
+          {
+            "node": "Crear cola de pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Contar llamadas activas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contar llamadas activas": {
+      "main": [
+        [
+          {
+            "node": "Calcular disponibles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular disponibles": {
+      "main": [
+        [
+          {
+            "node": "¿Hay espacio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay espacio?": {
+      "main": [
+        [
+          {
+            "node": "Traer siguiente cola",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traer siguiente cola": {
+      "main": [
+        [
+          {
+            "node": "Ordenar por prioridad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ordenar por prioridad": {
+      "main": [
+        [
+          {
+            "node": "Procesar cada candidato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar cada candidato": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Marcar EN_CURSO en cola",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar EN_CURSO en cola": {
+      "main": [
+        [
+          {
+            "node": "Traer candidato completo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traer candidato completo": {
+      "main": [
+        [
+          {
+            "node": "Obtener motivo_llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener motivo_llamada": {
+      "main": [
+        [
+          {
+            "node": "Obtener Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Eventos": {
+      "main": [
+        [
+          {
+            "node": "Parseo de fecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parseo de fecha": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Validar horario de llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON ElevenLabs": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Crear Llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Llamada": {
+      "main": [
+        [
+          {
+            "node": "Procesar cada candidato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar horario de llamada": {
+      "main": [
+        [
+          {
+            "node": "JSON ElevenLabs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cb918684-5438-4415-a3f9-54430655146a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3abec54075e2612dc95c3449ff96a33a65a70c9875e83b5c144718502f915798"
+  },
+  "id": "YUZ92AQSPYYMWHNu",
+  "tags": []
+}

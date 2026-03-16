@@ -1,0 +1,1049 @@
+{
+  "name": "Asesor Nueva BD",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -64
+      ],
+      "id": "c668557d-9752-497f-9398-b37407f373fc",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidatos",
+        "limit": 1,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "estado_gestion_id",
+              "condition": "eq",
+              "keyValue": "={{ 1 }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        64,
+        112
+      ],
+      "id": "befd7698-c52e-49c0-9231-b4719d419b56",
+      "name": "Condición de usuarios pendientes",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];\nconst meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];\n\nreturn items.map(item => {\n  // Tomamos la hora directamente del string sin conversión de zona horaria\n  const fechaStr = item.json.fecha_hora.replace('+00:00', '');\n  const fecha = new Date(fechaStr);\n  \n  const dia = dias[fecha.getDay()];\n  const numeroDia = fecha.getDate();\n  const mes = meses[fecha.getMonth()];\n  const horas = fecha.getHours();\n  const minutos = fecha.getMinutes().toString().padStart(2, '0');\n  const ampm = horas >= 12 ? 'PM' : 'AM';\n  const hora12 = horas % 12 || 12;\n  \n  return {\n    json: {\n      ...item.json,\n      fecha_legible: `${dia} ${numeroDia} de ${mes} a las ${hora12}:${minutos} ${ampm}`\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        368
+      ],
+      "id": "83ece6bc-7ff8-4030-840e-19d62d916a13",
+      "name": "Parseo de fecha"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "eventos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        368
+      ],
+      "id": "f7e82754-b880-43fd-9868-71a75bb0bb69",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = items[0].json;\nconst eventos = input.eventos || [];\n\n// Generar textos para el bot\nconst fechasTexto = eventos\n  .map((e, index) => `opción ${index + 1}: ${e.fecha_legible}`)\n  .join(', ');\n\nconst eventosTexto = eventos\n  .map(e => `${e.fecha_legible} (ID: ${e.id})`)\n  .join('; ');\n\n// Obtener datos del candidato desde Split in Batches\nconst candidato = $('Procesar_Usuarios').item.json;\n\nreturn [{\n  json: {\n    candidato_id: candidato.id,\n    telefono: candidato.telefono,\n    nombre: `${candidato.nombre} ${candidato.apellido}`,\n    motivo: candidato.fase_actual,\n    lista_horarios: fechasTexto,\n    eventos_disponibles: eventosTexto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        368
+      ],
+      "id": "8de53de0-08e6-44e1-af63-88c43a567ecf",
+      "name": "JSON ElevenLabs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/convai/twilio/outbound-call",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agent_id\": \"agent_4501khbynht9ennvk32madk7k1jj\",\n  \"agent_phone_number_id\": \"phnum_8101khntfkmbeq6amer4dt70p5vs\",\n  \"to_number\": \"{{ $json.telefono }}\",\n  \"conversation_initiation_client_data\": {\n    \"dynamic_variables\": {\n      \"id\": \"{{ $json.candidato_id }}\",\n      \"nombre\": \"{{ $json.nombre }}\",\n      \"motivo\": \"{{ $json.motivo }}\",\n      \"lista_horarios\": \"{{ $json.lista_horarios }}\",\n      \"eventos_disponibles\": \"{{ $json.eventos_disponibles }}\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2448,
+        368
+      ],
+      "id": "4daa8f70-e50f-4840-bf8c-2a8c1b466cdd",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "N5t4dYUIGLsltSrf",
+          "name": "ElevenLabsAPI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c7110bc4-8aac-4e71-b16b-7628b6e68105",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        848
+      ],
+      "id": "b1c1a5ae-ee8c-46a2-833d-ecd96a1731f1",
+      "name": "Webhook",
+      "webhookId": "c7110bc4-8aac-4e71-b16b-7628b6e68105"
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = items[0].json;\nconst candidato = $('Procesar_Usuarios').item.json;\n\n// Aquí ponemos directamente el id de 'EN_CURSO'.\n// Más adelante, si quieres, creamos un nodo Supabase que lo lea dinámicamente.\nconst resultadoEnCursoId = 1; // asegúrate que 1 sea el id de EN_CURSO\n\nreturn [{\n  json: {\n    candidato_id: candidato.id,\n    fecha_hora_llamada: new Date().toISOString(),\n    resultado_id: resultadoEnCursoId,\n    conversation_id: httpResponse.conversation_id || null,\n    resumen: \"Llamada iniciada\"\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        368
+      ],
+      "id": "05302832-3059-4714-be06-aa36043f09a8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "llamadas",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "candidato_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.candidato_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "resultado_id",
+              "fieldValue": "={{ $('Obtener resultado_llamada').item.json.id }}"
+            },
+            {
+              "fieldId": "dia_agendado",
+              "fieldValue": "={{ $json.dia_agendado }}"
+            },
+            {
+              "fieldId": "hora_agendado",
+              "fieldValue": "={{ $json.hora_agendada }}"
+            },
+            {
+              "fieldId": "evento_asignado_id",
+              "fieldValue": "={{ $json.evento_id }}"
+            },
+            {
+              "fieldId": "resumen",
+              "fieldValue": "={{ $json.nota }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        640,
+        720
+      ],
+      "id": "20a039f3-9f0d-4e3b-8cce-4208abccb1f9",
+      "name": "Actualizar tabla \"llamada\"",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = items[0].json.body;\n\nreturn [{\n  json: {\n    candidato_id: body.candidato_id,\n    resultado: body.resultado,\n    dia_agendado: body.dia || null,\n    hora_agendada: body.hora || null,\n    nota: body.nota || null,\n    evento_id: body.evento_id || null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        848
+      ],
+      "id": "2b6e6818-2edc-4da8-86ed-f45ebbe2913e",
+      "name": "Parseo llamada"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "candidatos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.candidato_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "ultimo_contacto",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "evento_asignado_id",
+              "fieldValue": "={{ $json.evento_id }}"
+            },
+            {
+              "fieldId": "estado_gestion_id",
+              "fieldValue": "={{ $('Obtener estado_gestion').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        848,
+        720
+      ],
+      "id": "93d49356-6a6f-4d5f-9202-79fae3d8c562",
+      "name": "Actualizar Candidato",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "llamadas",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "candidato_id",
+              "fieldValue": "={{ $json.candidato_id }}"
+            },
+            {
+              "fieldId": "fecha_hora_llamada",
+              "fieldValue": "={{ $json.fecha_hora_llamada }}"
+            },
+            {
+              "fieldId": "resultado_id",
+              "fieldValue": "={{ $json.resultado_id }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $json.conversation_id }}"
+            },
+            {
+              "fieldId": "resumen",
+              "fieldValue": "={{ $json.resumen }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        368
+      ],
+      "id": "bbab986a-8a99-403f-9a80-a04264d40c9a",
+      "name": "Crear Llamada",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "dbf4f377-7218-4e52-ac95-f9385c2b639b",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        112
+      ],
+      "id": "0a8e5202-9590-45bc-8e10-ed22735e2790",
+      "name": "MakeCalls",
+      "webhookId": "dbf4f377-7218-4e52-ac95-f9385c2b639b"
+    },
+    {
+      "parameters": {
+        "content": "Flujo para el agente de Elevenlabs. ¿Wtf, esto para que existe si en pruebas se usan las variables quemadas en el bot?",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -624,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "3676d18d-753d-49c3-84e7-5d6bc8b213ea",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "eventos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.evento_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        432,
+        928
+      ],
+      "id": "1dbe24e4-74e2-4b3c-9fb8-760472f614d2",
+      "name": "Obtener \"evento\"",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const evento = items[0].json;\n\nconst nuevosInscritos = evento.inscritos_actuales + 1;\nconst estaLleno = nuevosInscritos >= evento.capacidad_total;\n\nreturn [{\n  json: {\n    evento_id: evento.id,\n    inscritos_actuales: nuevosInscritos,\n    estado: estaLleno ? 'COMPLETO' : 'DISPONIBLE'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        928
+      ],
+      "id": "e3c4da38-7e7d-48f2-b4c0-84576d7c647a",
+      "name": "Parsear evento"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "eventos",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.evento_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "inscritos_actuales",
+              "fieldValue": "={{ $json.inscritos_actuales }}"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "={{ $json.estado }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        848,
+        928
+      ],
+      "id": "1adb20a0-fd40-4304-bae3-281cf726b4a4",
+      "name": "Actualizar EVENTO",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0fbc5147-fefa-431e-a1c9-f8f425e96d80",
+              "leftValue": "={{ $json.resultado.toLowerCase() }}",
+              "rightValue": "agendado",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        944
+      ],
+      "id": "ab0c088c-81d8-4092-add3-af28dbfb4ec5",
+      "name": "¿Fue agendado?"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "eventos",
+        "limit": 10,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tipo_reunion",
+              "condition": "eq",
+              "keyValue": "={{ $('Procesar_Usuarios').item.json.fase_actual }}"
+            },
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "DISPONIBLE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        368
+      ],
+      "id": "6d2fa0e6-4c29-4f60-a982-e431b3403e18",
+      "name": "Obtener Eventos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "motivos_llamada",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $items('Condición de usuarios pendientes')[ $itemIndex ].json.motivo_llamada_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        368
+      ],
+      "id": "a385a58b-2f05-4cb0-8771-ffe6caa80600",
+      "name": "Obtener motivo_llamada",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        512,
+        352
+      ],
+      "id": "7522a093-b550-4024-9e1e-27047e43d5f0",
+      "name": "Procesar_Usuarios"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "01389641-285b-4173-b701-5b831f37c3f5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "Schedule Trigger → Condición de usuarios pendientes (limit 4) te coge como máximo 4 candidatos por ejecución.\n\nProcesar_Usuarios los procesa secuencialmente.\n\nEl intervalo del Schedule es tu “tiempo de espera” entre grupos.",
+        "height": 240
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        784,
+        -272
+      ],
+      "id": "3d2bcc3d-fee8-446c-a037-bacc1dcc8657",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "resultados_llamada",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "codigo",
+              "keyValue": "={{ $json.resultado.toUpperCase() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        720
+      ],
+      "id": "a950341d-1aa8-487e-ac7b-f22821b43ef2",
+      "name": "Obtener resultado_llamada",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "estados_gestion",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "codigo",
+              "keyValue": "={{ $json.resultado.toUpperCase() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        432,
+        720
+      ],
+      "id": "fe53974a-6b06-49c3-94a6-a762cf53c8f4",
+      "name": "Obtener estado_gestion",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "horarios",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.horario_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        864,
+        368
+      ],
+      "id": "02d1ff08-2129-48b0-baa6-c3e8cb73d82a",
+      "name": "Obtener horario",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Ventana global: de 08:00 a 20:00 hora local.\n\nhorario_id:\n\nAM: se llama solo si hora actual está entre 08:00 y 13:00.\n\nPM: solo si está entre 14:00 y 20:00.\n\nAMPM: cualquier hora dentro de la ventana global.",
+        "height": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        -272
+      ],
+      "id": "432bdfb5-261c-4c34-82d4-e0e728a138ce",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Hora actual del servidor en UTC\nconst nowUtc = new Date();\nlet hora = nowUtc.getUTCHours(); // 0-23\nconst min = nowUtc.getUTCMinutes();\n\n// Ajustar a Colombia (UTC-5)\nhora = (hora - 5 + 24) % 24; // normaliza a 0–23\n\n// Ventana global 6:00 - 22:00\nconst dentroVentanaGlobal = hora >= 6 && hora < 22;\nif (!dentroVentanaGlobal) {\n  // Fuera de ventana global → no llamar\n  return [];\n}\n\n// 2. Intentar leer horario del candidato\nconst horarioItems = $items('Obtener horario', 0, 0);\nlet codigoHorario = null;\n\nif (horarioItems && horarioItems.json && horarioItems.json.codigo) {\n  codigoHorario = horarioItems.json.codigo; // 'AM', 'PM', 'AMPM'\n}\n\n// 3. Validar según franja\nlet permitido = false;\n\nif (!codigoHorario) {\n  // Si no hay horario, usamos solo la ventana global\n  permitido = true;\n} else if (codigoHorario === 'AM') {\n  permitido = hora >= 6 && hora < 13;\n} else if (codigoHorario === 'PM') {\n  permitido = hora >= 14 && hora < 22;\n} else if (codigoHorario === 'AMPM') {\n  permitido = hora >= 6 && hora < 22;\n}\n\nif (!permitido) {\n  return [];\n}\n\n// Debug opcional\nitems[0].json.debug_hora_local = hora;\nitems[0].json.debug_min_local = min;\nitems[0].json.debug_horario_codigo = codigoHorario || 'SIN_HORARIO';\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        368
+      ],
+      "id": "888ff561-b0c9-42c6-b359-bf624f2eef1c",
+      "name": "Validar horario de llamada"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidato_ideal"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        304,
+        112
+      ],
+      "id": "e77244da-4fdc-4925-8598-cfa0e67ff917",
+      "name": "Obtener CI candidatos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ghw11sLjQco7mutF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Candidatos que llegan del nodo \"Condición de usuarios pendientes\"\nconst candidatos = $items('Condición de usuarios pendientes', 0); // todos los items\n\n// Registros candidato_ideal desde \"Obtener CI candidatos\"\nconst ciItems = $items('Obtener CI candidatos', 0);\nconst ciMap = {};\nfor (const ciItem of ciItems) {\n  const ci = ciItem.json;\n  ciMap[ci.candidato_id] = ci;\n}\n\n// Mapear, añadir campos de prioridad y ordenar\nconst enriquecidos = candidatos.map((candItem) => {\n  const c = candItem.json;\n  const ci = ciMap[c.id] || null;\n\n  const ciTotal = ci ? ci.ci_total || 0 : 0;\n  const intentos = c.intentos_llamada || 0;\n  const ultimo = c.ultimo_contacto ? new Date(c.ultimo_contacto).getTime() : null;\n\n  return {\n    json: {\n      ...c,\n      ci_total: ciTotal,\n      intentos_llamada: intentos,\n      ultimo_contacto_ts: ultimo\n    }\n  };\n});\n\n// Ordenar: mayor ci_total, menor intentos, ultimo_contacto más antiguo\nenriquecidos.sort((a, b) => {\n  const ca = a.json;\n  const cb = b.json;\n\n  // 1) ci_total desc\n  if (cb.ci_total !== ca.ci_total) {\n    return cb.ci_total - ca.ci_total;\n  }\n\n  // 2) intentos_llamada asc\n  if (ca.intentos_llamada !== cb.intentos_llamada) {\n    return ca.intentos_llamada - cb.intentos_llamada;\n  }\n\n  // 3) ultimo_contacto más antiguo primero (null al final)\n  const ua = ca.ultimo_contacto_ts;\n  const ub = cb.ultimo_contacto_ts;\n\n  if (ua === null && ub === null) return 0;\n  if (ua === null) return 1;   // null al final\n  if (ub === null) return -1;\n\n  return ua - ub;\n});\n\n// Devolver los candidatos ya ordenados como items para el siguiente nodo\nreturn enriquecidos;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        112
+      ],
+      "id": "a5575a49-425a-4cfb-b3d1-0d4140c23987",
+      "name": "Ordenar por prioridad"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "riwi-n8n.up.railway.app",
+            "user-agent": "ElevenLabs/1.0",
+            "content-length": "219",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "34.59.11.47",
+            "x-forwarded-host": "riwi-n8n.up.railway.app",
+            "x-forwarded-proto": "https",
+            "x-railway-edge": "railway/us-west2",
+            "x-railway-request-id": "7IWNdb7VRq21khAoxtoGcA",
+            "x-real-ip": "34.59.11.47",
+            "x-request-start": "1771551254571"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "resultado": "AGENDADO",
+            "dia": "miércoles",
+            "hora": "7:00 PM",
+            "fecha_seleccionada_legible": "miércoles 18 de febrero a las 7:00 PM",
+            "candidato_id": "b243b83d-341c-43d6-a2f7-10dd0a0a8091",
+            "evento_id": "2"
+          },
+          "webhookUrl": "https://riwi-n8n.up.railway.app/webhook/elevenlabs-resultado",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Condición de usuarios pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Condición de usuarios pendientes": {
+      "main": [
+        [
+          {
+            "node": "Obtener CI candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parseo de fecha": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Validar horario de llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON ElevenLabs": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parseo llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Crear Llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar tabla \"llamada\"": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Candidato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parseo llamada": {
+      "main": [
+        [
+          {
+            "node": "¿Fue agendado?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Obtener resultado_llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Candidato": {
+      "main": [
+        []
+      ]
+    },
+    "Crear Llamada": {
+      "main": [
+        [
+          {
+            "node": "Procesar_Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MakeCalls": {
+      "main": [
+        [
+          {
+            "node": "Condición de usuarios pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener \"evento\"": {
+      "main": [
+        [
+          {
+            "node": "Parsear evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear evento": {
+      "main": [
+        [
+          {
+            "node": "Actualizar EVENTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Fue agendado?": {
+      "main": [
+        [
+          {
+            "node": "Obtener \"evento\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Eventos": {
+      "main": [
+        [
+          {
+            "node": "Parseo de fecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener motivo_llamada": {
+      "main": [
+        [
+          {
+            "node": "Obtener Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar_Usuarios": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Obtener horario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Condición de usuarios pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener resultado_llamada": {
+      "main": [
+        [
+          {
+            "node": "Obtener estado_gestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener estado_gestion": {
+      "main": [
+        [
+          {
+            "node": "Actualizar tabla \"llamada\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener horario": {
+      "main": [
+        [
+          {
+            "node": "Obtener motivo_llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar horario de llamada": {
+      "main": [
+        [
+          {
+            "node": "JSON ElevenLabs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener CI candidatos": {
+      "main": [
+        [
+          {
+            "node": "Ordenar por prioridad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ordenar por prioridad": {
+      "main": [
+        [
+          {
+            "node": "Procesar_Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "aa160986-7842-46cc-b170-a1eb4682719f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3abec54075e2612dc95c3449ff96a33a65a70c9875e83b5c144718502f915798"
+  },
+  "id": "uHmQvyrUzOuulAiG",
+  "tags": []
+}

@@ -1,0 +1,224 @@
+CREATE TABLE public.candidato_ideal (
+  id integer NOT NULL DEFAULT nextval('candidato_ideal_id_seq'::regclass),
+  candidato_id uuid NOT NULL UNIQUE,
+  ci_jornada integer,
+  ci_edad integer,
+  ci_ubicacion integer,
+  ci_estudios integer,
+  ci_estrato integer,
+  ci_nivel_prog integer,
+  ci_ocupacion integer,
+  ci_total integer,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT candidato_ideal_pkey PRIMARY KEY (id),
+  CONSTRAINT candidato_ideal_candidato_id_fkey FOREIGN KEY (candidato_id) REFERENCES public.candidatos(id)
+);
+CREATE TABLE public.candidatos (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  nombre text NOT NULL,
+  apellido text NOT NULL,
+  correo text NOT NULL UNIQUE,
+  discord_usuario text,
+  contrasena_hash text NOT NULL,
+  telefono text NOT NULL,
+  pais_codigo text NOT NULL DEFAULT '+57'::text,
+  fecha_nacimiento date NOT NULL,
+  tipo_documento_id integer NOT NULL,
+  numero_documento text NOT NULL UNIQUE,
+  genero_id integer NOT NULL,
+  tipo_convenio_id integer NOT NULL,
+  departamento_id integer NOT NULL,
+  municipio_id integer NOT NULL,
+  sede_interes_id integer NOT NULL,
+  estrato_id integer NOT NULL,
+  horario_id integer NOT NULL,
+  medio_comunicacion_id integer NOT NULL,
+  nivel_educativo_id integer,
+  titulo text,
+  conocimiento_programacion_id integer,
+  ocupacion_id integer,
+  fase_actual text NOT NULL DEFAULT 'PRUEBA_LOGICA'::text CHECK (fase_actual = ANY (ARRAY['PRUEBA_LOGICA'::text, 'ENTREVISTA'::text, 'BIENVENIDA'::text, 'FINALIZADO'::text])),
+  motivo_llamada_id integer,
+  estado_gestion_id integer NOT NULL,
+  ultimo_contacto timestamp with time zone,
+  evento_asignado_id integer,
+  intentos_llamada integer NOT NULL DEFAULT 0,
+  proxima_llamada timestamp with time zone,
+  form_name text,
+  form_id text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  franja_actual text DEFAULT 'manana'::text CHECK (franja_actual = ANY (ARRAY['manana'::text, 'tarde'::text, 'noche'::text])),
+  intentos_franja_actual integer DEFAULT 0,
+  hora_preferida_llamada time without time zone,
+  nota_horario text,
+  CONSTRAINT candidatos_pkey PRIMARY KEY (id),
+  CONSTRAINT candidatos_tipo_documento_id_fkey FOREIGN KEY (tipo_documento_id) REFERENCES public.tipos_documento(id),
+  CONSTRAINT candidatos_genero_id_fkey FOREIGN KEY (genero_id) REFERENCES public.generos(id),
+  CONSTRAINT candidatos_tipo_convenio_id_fkey FOREIGN KEY (tipo_convenio_id) REFERENCES public.tipos_convenio(id),
+  CONSTRAINT candidatos_departamento_id_fkey FOREIGN KEY (departamento_id) REFERENCES public.departamentos(id),
+  CONSTRAINT candidatos_municipio_id_fkey FOREIGN KEY (municipio_id) REFERENCES public.municipios(id),
+  CONSTRAINT candidatos_sede_interes_id_fkey FOREIGN KEY (sede_interes_id) REFERENCES public.sedes(id),
+  CONSTRAINT candidatos_estrato_id_fkey FOREIGN KEY (estrato_id) REFERENCES public.estratos(id),
+  CONSTRAINT candidatos_horario_id_fkey FOREIGN KEY (horario_id) REFERENCES public.horarios(id),
+  CONSTRAINT candidatos_medio_comunicacion_id_fkey FOREIGN KEY (medio_comunicacion_id) REFERENCES public.medios_comunicacion(id),
+  CONSTRAINT candidatos_nivel_educativo_id_fkey FOREIGN KEY (nivel_educativo_id) REFERENCES public.niveles_educativos(id),
+  CONSTRAINT candidatos_conocimiento_programacion_id_fkey FOREIGN KEY (conocimiento_programacion_id) REFERENCES public.conocimientos_programacion(id),
+  CONSTRAINT candidatos_ocupacion_id_fkey FOREIGN KEY (ocupacion_id) REFERENCES public.ocupaciones(id),
+  CONSTRAINT candidatos_motivo_llamada_id_fkey FOREIGN KEY (motivo_llamada_id) REFERENCES public.motivos_llamada(id),
+  CONSTRAINT candidatos_estado_gestion_id_fkey FOREIGN KEY (estado_gestion_id) REFERENCES public.estados_gestion(id),
+  CONSTRAINT fk_candidatos_evento FOREIGN KEY (evento_asignado_id) REFERENCES public.eventos(id)
+);
+CREATE TABLE public.cola_llamadas (
+  id integer NOT NULL DEFAULT nextval('cola_llamadas_id_seq'::regclass),
+  candidato_id uuid NOT NULL,
+  prioridad integer NOT NULL,
+  franja_programada text NOT NULL CHECK (franja_programada = ANY (ARRAY['manana'::text, 'tarde'::text, 'noche'::text, 'personalizada'::text])),
+  hora_programada time without time zone,
+  fecha_programada date NOT NULL DEFAULT CURRENT_DATE,
+  estado text NOT NULL DEFAULT 'PENDIENTE'::text CHECK (estado = ANY (ARRAY['PENDIENTE'::text, 'EN_CURSO'::text, 'COMPLETADA'::text, 'CANCELADA'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT cola_llamadas_pkey PRIMARY KEY (id),
+  CONSTRAINT cola_llamadas_candidato_id_fkey FOREIGN KEY (candidato_id) REFERENCES public.candidatos(id)
+);
+CREATE TABLE public.conocimientos_programacion (
+  id integer NOT NULL DEFAULT nextval('conocimientos_programacion_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  nivel integer NOT NULL,
+  CONSTRAINT conocimientos_programacion_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.departamentos (
+  id integer NOT NULL DEFAULT nextval('departamentos_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  nombre text NOT NULL,
+  CONSTRAINT departamentos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.estados_gestion (
+  id integer NOT NULL DEFAULT nextval('estados_gestion_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT estados_gestion_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.estratos (
+  id integer NOT NULL DEFAULT nextval('estratos_id_seq'::regclass),
+  valor integer NOT NULL UNIQUE CHECK (valor >= 1 AND valor <= 6),
+  CONSTRAINT estratos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.eventos (
+  id integer NOT NULL DEFAULT nextval('eventos_id_seq'::regclass),
+  tipo_reunion text NOT NULL CHECK (tipo_reunion = ANY (ARRAY['PRUEBA_LOGICA'::text, 'ENTREVISTA'::text, 'BIENVENIDA'::text])),
+  sede_id integer,
+  horario_id integer,
+  fecha_hora timestamp with time zone NOT NULL,
+  inscritos_actuales integer NOT NULL DEFAULT 0,
+  capacidad_total integer NOT NULL,
+  estado text NOT NULL DEFAULT 'DISPONIBLE'::text CHECK (estado = ANY (ARRAY['DISPONIBLE'::text, 'COMPLETO'::text, 'CANCELADO'::text])),
+  descripcion text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT eventos_pkey PRIMARY KEY (id),
+  CONSTRAINT eventos_sede_id_fkey FOREIGN KEY (sede_id) REFERENCES public.sedes(id),
+  CONSTRAINT eventos_horario_id_fkey FOREIGN KEY (horario_id) REFERENCES public.horarios(id)
+);
+CREATE TABLE public.generos (
+  id integer NOT NULL DEFAULT nextval('generos_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT generos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.historial_fases (
+  id integer NOT NULL DEFAULT nextval('historial_fases_id_seq'::regclass),
+  candidato_id uuid NOT NULL,
+  fase text NOT NULL CHECK (fase = ANY (ARRAY['PRUEBA_LOGICA'::text, 'ENTREVISTA'::text, 'BIENVENIDA'::text])),
+  fecha_inicio timestamp with time zone NOT NULL DEFAULT now(),
+  fecha_fin timestamp with time zone,
+  resultado text CHECK ((resultado = ANY (ARRAY['APROBADO'::text, 'RECHAZADO'::text])) OR resultado IS NULL),
+  observaciones text,
+  usuario_actualizo text,
+  CONSTRAINT historial_fases_pkey PRIMARY KEY (id),
+  CONSTRAINT historial_fases_candidato_id_fkey FOREIGN KEY (candidato_id) REFERENCES public.candidatos(id)
+);
+CREATE TABLE public.horarios (
+  id integer NOT NULL DEFAULT nextval('horarios_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  hora_inicio time without time zone NOT NULL,
+  hora_fin time without time zone NOT NULL,
+  CONSTRAINT horarios_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.llamadas (
+  id bigint NOT NULL DEFAULT nextval('llamadas_id_seq'::regclass),
+  candidato_id uuid NOT NULL,
+  fecha_hora_llamada timestamp with time zone NOT NULL,
+  resultado_id integer NOT NULL,
+  conversation_id text,
+  resumen text,
+  dia_agendado text,
+  hora_agendado text,
+  evento_asignado_id integer,
+  duracion_segundos integer,
+  agente_id text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT llamadas_pkey PRIMARY KEY (id),
+  CONSTRAINT llamadas_candidato_id_fkey FOREIGN KEY (candidato_id) REFERENCES public.candidatos(id),
+  CONSTRAINT llamadas_resultado_id_fkey FOREIGN KEY (resultado_id) REFERENCES public.resultados_llamada(id),
+  CONSTRAINT llamadas_evento_asignado_id_fkey FOREIGN KEY (evento_asignado_id) REFERENCES public.eventos(id)
+);
+CREATE TABLE public.medios_comunicacion (
+  id integer NOT NULL DEFAULT nextval('medios_comunicacion_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT medios_comunicacion_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.motivos_llamada (
+  id integer NOT NULL DEFAULT nextval('motivos_llamada_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT motivos_llamada_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.municipios (
+  id integer NOT NULL DEFAULT nextval('municipios_id_seq'::regclass),
+  departamento_id integer NOT NULL,
+  nombre text NOT NULL,
+  CONSTRAINT municipios_pkey PRIMARY KEY (id),
+  CONSTRAINT municipios_departamento_id_fkey FOREIGN KEY (departamento_id) REFERENCES public.departamentos(id)
+);
+CREATE TABLE public.niveles_educativos (
+  id integer NOT NULL DEFAULT nextval('niveles_educativos_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  orden integer NOT NULL,
+  CONSTRAINT niveles_educativos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ocupaciones (
+  id integer NOT NULL DEFAULT nextval('ocupaciones_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT ocupaciones_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.resultados_llamada (
+  id integer NOT NULL DEFAULT nextval('resultados_llamada_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT resultados_llamada_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sedes (
+  id integer NOT NULL DEFAULT nextval('sedes_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  nombre text NOT NULL,
+  CONSTRAINT sedes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tipos_convenio (
+  id integer NOT NULL DEFAULT nextval('tipos_convenio_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT tipos_convenio_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tipos_documento (
+  id integer NOT NULL DEFAULT nextval('tipos_documento_id_seq'::regclass),
+  codigo text NOT NULL UNIQUE,
+  descripcion text NOT NULL,
+  CONSTRAINT tipos_documento_pkey PRIMARY KEY (id)
+);
